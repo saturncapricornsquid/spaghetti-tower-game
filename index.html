@@ -5,7 +5,6 @@
   <title>Spaghetti Tower Challenge</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-  <!-- Matter.js physics engine -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.20.0/matter.min.js"></script>
 
   <style>
@@ -20,12 +19,11 @@
       display: block;
     }
 
-    /* HUD */
     #hud {
       position: fixed;
       top: 10px;
       left: 10px;
-      width: 400px;
+      width: 410px;
       background: white;
       padding: 14px 16px;
       border-radius: 10px;
@@ -56,20 +54,40 @@
       color: #333;
     }
 
-    /* Setup panel */
-    #setupPanel {
+    #finalPanel {
       position: fixed;
       inset: 0;
-      background: rgba(0, 0, 0, 0.45);
+      background: rgba(0,0,0,0.45);
       display: flex;
       align-items: center;
       justify-content: center;
       z-index: 50;
     }
 
-    #setupCard {
+    #finalPanel.hidden {
+      display: none;
+    }
+
+    #finalCard {
       background: white;
       padding: 24px;
       border-radius: 16px;
       width: 380px;
       max-width: 90vw;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+    }
+  </style>
+</head>
+<body>
+
+  <div id="hud">
+    <div>⏱️ Time: <span id="time">00:30</span></div>
+    <div>🍝 Spaghetti left: <span id="count">20</span></div>
+    <div>🤍 Marshmallows left: <span id="marshmallowCount">10</span></div>
+    <div>🏆 Score: <span id="score">0</span></div>
+    <div>📐 Rotation: <span id="rotation">0°</span></div>
+    <div>🧱 Build mode: <span id="buildModeLabel">Spaghetti</span></div>
+
+    <div id="status">
+      Click <strong>Switch to marshmallow</strong> to place connector marshmallows.  
+      Press <strong>M</strong> to switch materials. Press <strong>R</strong> or use rotate buttons for spaghetti.
