@@ -65,3 +65,18 @@ document.getElementById("add").onclick = () => {
   spaghettiLeft--;
   document.getElementById("count").innerText = spaghettiLeft;
 };
+let timeLeft = 18 * 60;
+
+setInterval(() => {
+  if (timeLeft <= 0) return;
+
+  timeLeft--;
+
+  const minutes = Math.floor(timeLeft / 60);
+  const seconds = String(timeLeft % 60).padStart(2, "0");
+  document.getElementById("time").innerText = `${minutes}:${seconds}`;
+
+  if (timeLeft === 0) {
+    document.getElementById("add").disabled = true;
+  }
+}, 1000);
