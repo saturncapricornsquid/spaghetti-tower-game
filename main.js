@@ -50,7 +50,7 @@ let lastBuilder = "";
 
 let spaghettiLeft = 20;
 let score = 0;
-let timeLeft = 30; // change to 18 * 60 later if you want
+let timeLeft = 30;
 let rotation = 0;
 let gameEnded = false;
 let marshmallowPlaced = false;
@@ -500,3 +500,4 @@ window.addEventListener("resize", () => {
     initGame();
   }
 });
+``
