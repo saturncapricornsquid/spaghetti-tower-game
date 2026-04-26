@@ -25,7 +25,7 @@
       position: fixed;
       top: 10px;
       left: 10px;
-      width: 360px;
+      width: 400px;
       background: white;
       padding: 14px 16px;
       border-radius: 10px;
@@ -52,7 +52,7 @@
     #status {
       margin-top: 8px;
       font-size: 13px;
-      min-height: 44px;
+      min-height: 48px;
       color: #333;
     }
 
@@ -73,144 +73,3 @@
       border-radius: 16px;
       width: 380px;
       max-width: 90vw;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
-    }
-
-    #setupCard h2 {
-      margin-top: 0;
-      margin-bottom: 8px;
-    }
-
-    #setupCard p {
-      margin-top: 0;
-      color: #444;
-    }
-
-    .playerInput {
-      width: 100%;
-      margin-bottom: 8px;
-      padding: 8px 10px;
-      font-size: 14px;
-      box-sizing: border-box;
-    }
-
-    #startGame {
-      margin-top: 8px;
-      padding: 10px 14px;
-      font-size: 14px;
-      cursor: pointer;
-      border: 1px solid #ccc;
-      border-radius: 8px;
-      background: #f8f8f8;
-    }
-
-    /* Final panel */
-    #finalPanel {
-      position: fixed;
-      inset: 0;
-      background: rgba(0, 0, 0, 0.45);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      z-index: 60;
-    }
-
-    #finalPanel.hidden {
-      display: none;
-    }
-
-    #finalCard {
-      background: white;
-      padding: 24px;
-      border-radius: 16px;
-      width: 400px;
-      max-width: 90vw;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
-    }
-
-    #finalCard h2 {
-      margin-top: 0;
-      margin-bottom: 8px;
-    }
-
-    .finalStats {
-      margin: 16px 0;
-      line-height: 1.8;
-    }
-
-    .finalButtons {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
-      margin-top: 16px;
-    }
-
-    .finalButtons button {
-      padding: 8px 14px;
-      border: 1px solid #ccc;
-      border-radius: 8px;
-      background: #f7f7f7;
-      cursor: pointer;
-    }
-  </style>
-</head>
-<body>
-
-  <!-- Team setup -->
-  <div id="setupPanel">
-    <div id="setupCard">
-      <h2>Team setup</h2>
-      <p>Enter player names (2–5 recommended) and start the round.</p>
-
-      <input class="playerInput" placeholder="Player 1" />
-      <input class="playerInput" placeholder="Player 2" />
-      <input class="playerInput" placeholder="Player 3" />
-      <input class="playerInput" placeholder="Player 4 (optional)" />
-      <input class="playerInput" placeholder="Player 5 (optional)" />
-
-      <button id="startGame">Start game</button>
-    </div>
-  </div>
-
-  <!-- HUD -->
-  <div id="hud">
-    <div>⏱️ Time: <span id="time">00:30</span></div>
-    <div>🍝 Spaghetti left: <span id="count">20</span></div>
-    <div>🏆 Score: <span id="score">0</span></div>
-    <div>📐 Rotation: <span id="rotation">0°</span></div>
-    <div>👤 Current builder: <span id="currentPlayer">—</span></div>
-
-    <div id="status">Waiting to start…</div>
-
-    <button id="rotateLeft">Rotate -15°</button>
-    <button id="rotateRight">Rotate +15°</button>
-    <button id="add">Add spaghetti (centre)</button>
-    <button id="reset">Reset round</button>
-  </div>
-
-  <canvas id="game"></canvas>
-
-  <!-- Final panel -->
-  <div id="finalPanel" class="hidden">
-    <div id="finalCard">
-      <h2 id="finalTitle">Round complete</h2>
-      <p id="finalMessage">Your result will appear here.</p>
-
-      <div class="finalStats">
-        <div><strong>Final score:</strong> <span id="finalScore">0</span></div>
-        <div><strong>Height:</strong> <span id="finalHeight">0</span></div>
-        <div><strong>Spaghetti used:</strong> <span id="finalUsed">0</span></div>
-        <div><strong>Marshmallow placed:</strong> <span id="finalMarshmallow">No</span></div>
-        <div><strong>Last builder:</strong> <span id="finalBuilder">—</span></div>
-      </div>
-
-      <div class="finalButtons">
-        <button id="playAgain">Play again</button>
-        <button id="changeTeam">Change team</button>
-      </div>
-    </div>
-  </div>
-
-  <script src="main.js"></script>
-</body>
-</html>
