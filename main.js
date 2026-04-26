@@ -1,35 +1,47 @@
 const { Engine, Render, Runner, World, Bodies, Events } = Matter;
 
 /* =========================
-   Basic setup
+   DOM references
 ========================= */
 const canvas = document.getElementById("game");
 const timeEl = document.getElementById("time");
 const countEl = document.getElementById("count");
 const scoreEl = document.getElementById("score");
 const statusEl = document.getElementById("status");
-const resetBtn = document.getElementById("add");
+const addBtn = document.getElementById("add");
+const resetBtn = document.getElementById("reset");
 
-let engine, render, runner;
-let ground, leftWall, rightWall;
+/* =========================
+   Constants
+========================= */
+const GROUND_HEIGHT = 80;
+const HUD_SAFE_WIDTH = 320;
+const HUD_SAFE_HEIGHT = 220;
+
+/* =========================
+   Game state
+========================= */
+let engine;
+let render;
+let runner;
+let ground;
+let leftWall;
+let rightWall;
+
 let spaghettiBodies = [];
 let marshmallowBody = null;
 
 let spaghettiLeft = 20;
 let marshmallowPlaced = false;
 let gameEnded = false;
-let timeLeft = 30; // shortened for testing
+let timeLeft = 30; // change to 18 * 60 later
 let countdownInterval = null;
 let stabilityInterval = null;
 let stabilityRemaining = 10;
 let score = 0;
 
-const HUD_BLOCK_WIDTH = 320;
-const HUD_BLOCK_HEIGHT = 220;
-const GROUND_HEIGHT = 80;
-
 /* =========================
-   Initialise game
+   Init
 ========================= */
 function initGame() {
   clearTimers();
@@ -39,36 +51,35 @@ function initGame() {
   spaghettiLeft = 20;
   marshmallowPlaced = false;
   gameEnded = false;
-  timeLeft = 30; // set back to 18 * 60 later if you want full length
+  timeLeft = 30; // testing value
   stabilityRemaining = 10;
   score = 0;
 
   canvas.width = window.innerWidth;
   canvas.height = window.innerHeight;
 
-  /* Clear existing render canvas if reinitialising */
-  if (render && render.canvas) {
-    render.canvas.remove();
-    render.textures = {};
+  if (render) {
+    Render.stop(render);
+    if (render.canvas && render.canvas.parentNode) {
+      // clear previous frame buffer only
+      const ctx = render.canvas.getContext("2d");
+      ctx.clearRect(0, 0, render.canvas.width, render.canvas.height);
+    }
   }
 
-  /* Recreate canvas element because Matter attaches to it */
-  const oldCanvas = document.getElementById("game");
-  const newCanvas = oldCanvas.cloneNode(false);
-  oldCanvas.parentNode.replaceChild(newCanvas, oldCanvas);
-
-  /* Update reference */
-  window.gameCanvas = document.getElementById("game");
+  if (runner) {
+    Runner.stop(runner);
+  }
 
   engine = Engine.create();
   engine.world.gravity.y = 1;
 
   render = Render.create({
-    canvas: window.gameCanvas,
+    canvas: canvas,
     engine: engine,
     options: {
-      width: window.innerWidth,
-      height: window.innerHeight,
+      width: canvas.width,
+      height: canvas.height,
       wireframes: false,
       background: "#f4f4f4"
     }
@@ -76,26 +87,26 @@ function initGame() {
 
   runner = Runner.create();
 
+  createWorldBounds();
+  attachEvents();
+
+  updateHud();
+  statusEl.innerText = "Click in the grey area or press “Add spaghetti”.";
+
   Render.run(render);
   Runner.run(runner, engine);
 
-  createWorldBounds();
-  wireCanvasClick();
-  wireResetButton();
-  wireFailCheck();
-
-  updateHud();
   startCountdown();
 }
 
+/* =========================
+   World setup
+========================= */
 function createWorldBounds() {
-  const width = window.innerWidth;
-  const height = window.innerHeight;
-
   ground = Bodies.rectangle(
-    width / 2,
-    height - GROUND_HEIGHT / 2,
-    width,
+    canvas.width / 2,
+    canvas.height - GROUND_HEIGHT / 2,
+    canvas.width,
     GROUND_HEIGHT,
     {
       isStatic: true,
@@ -106,18 +117,24 @@ function createWorldBounds() {
 
   leftWall = Bodies.rectangle(
     -25,
-    height / 2,
+    canvas.height / 2,
     50,
-    height,
-    { isStatic: true, render: { visible: false } }
+    canvas.height,
+    {
+      isStatic: true,
+      render: { visible: false }
+    }
   );
 
   rightWall = Bodies.rectangle(
-    width + 25,
-    height / 2,
+    canvas.width + 25,
+    canvas.height / 2,
     50,
-    height,
-    { isStatic: true, render: { visible: false } }
+    canvas.height,
+    {
+      isStatic: true,
+      render: { visible: false }
+    }
   );
 
   World.add(engine.world, [ground, leftWall, rightWall]);
@@ -147,51 +164,91 @@ function createMarshmallow(x, y) {
 }
 
 /* =========================
-   Input
+   Placement helpers
 ========================= */
-function wireCanvasClick() {
-  window.gameCanvas.onclick = function (event) {
+function placeSpaghetti(x, y) {
+  if (gameEnded) return;
+  if (timeLeft <= 0) {
+    statusEl.innerText = "Building time is over. Place the marshmallow now.";
+    return;
+  }
+  if (spaghettiLeft <= 0) {
+    statusEl.innerText = "No spaghetti left. Wait for the marshmallow phase.";
+    return;
+  }
+
+  const stick = createSpaghetti(x, y);
+  spaghettiBodies.push(stick);
+  World.add(engine.world, stick);
+
+  spaghettiLeft--;
+  updateScore();
+  updateHud();
+  statusEl.innerText = "Spaghetti placed.";
+}
+
+function placeMarshmallow(x, y) {
+  if (gameEnded) return;
+  if (marshmallowPlaced) return;
+  if (timeLeft > 0) {
+    statusEl.innerText = "You can only place the marshmallow when the timer reaches 0.";
+    return;
+  }
+
+  marshmallowBody = createMarshmallow(x, y);
+  marshmallowPlaced = true;
+  World.add(engine.world, marshmallowBody);
+
+  statusEl.innerText = "Marshmallow placed. Tower must stand for 10 seconds...";
+  startStabilityCheck();
+}
+
+/* =========================
+   Input wiring
+========================= */
+function attachEvents() {
+  // Button: always place one spaghetti near the top centre during build phase.
+  addBtn.onclick = () => {
     if (gameEnded) return;
 
-    const rect = window.gameCanvas.getBoundingClientRect();
+    if (timeLeft > 0) {
+      placeSpaghetti(canvas.width / 2, 100);
+    } else if (!marshmallowPlaced) {
+      placeMarshmallow(canvas.width / 2, 80);
+    }
+  };
+
+  resetBtn.onclick = () => {
+    initGame();
+  };
+
+  canvas.onclick = (event) => {
+    if (gameEnded) return;
+
+    const rect = canvas.getBoundingClientRect();
     const x = event.clientX - rect.left;
     const y = event.clientY - rect.top;
 
-    /* Ignore clicks on HUD area */
-    if (x < HUD_BLOCK_WIDTH && y < HUD_BLOCK_HEIGHT) return;
+    // ignore clicks in the HUD zone
+    if (x < HUD_SAFE_WIDTH && y < HUD_SAFE_HEIGHT) return;
 
-    if (!marshmallowPlaced && timeLeft > 0) {
-      if (spaghettiLeft <= 0) {
-        statusEl.innerText = "No spaghetti left. Wait for the marshmallow phase.";
-        return;
-      }
-
-      const stick = createSpaghetti(x, y);
-      spaghettiBodies.push(stick);
-      World.add(engine.world, stick);
-
-      spaghettiLeft--;
-      updateScore();
-      updateHud();
-      statusEl.innerText = "Spaghetti placed. Keep building.";
-      return;
-    }
-
-    if (!marshmallowPlaced && timeLeft <= 0) {
-      marshmallowBody = createMarshmallow(x, y);
-      marshmallowPlaced = true;
-      World.add(engine.world, marshmallowBody);
-
-      statusEl.innerText = "Marshmallow placed. Tower must stand for 10 seconds...";
-      startStabilityCheck();
+    if (timeLeft > 0) {
+      placeSpaghetti(x, y);
+    } else if (!marshmallowPlaced) {
+      placeMarshmallow(x, y);
     }
   };
-}
 
-function wireResetButton() {
-  resetBtn.onclick = function () {
-    initGame();
-  };
+  Events.on(engine, "afterUpdate", () => {
+    if (gameEnded) return;
+    if (!marshmallowPlaced) return;
+
+    updateScore();
+
+    if (hasTowerFailed()) {
+      endGame(false);
+    }
+  });
 }
 
 /* =========================
@@ -206,7 +263,7 @@ function startCountdown() {
       updateHud();
 
       if (timeLeft === 0) {
-        statusEl.innerText = "Time is up! Click in the grey area to place the marshmallow.";
+        statusEl.innerText = "Time is up! Click in the grey area or press “Add spaghetti” to place the marshmallow.";
       }
     }
   }, 1000);
@@ -214,7 +271,6 @@ function startCountdown() {
 
 function startStabilityCheck() {
   stabilityRemaining = 10;
-  updateHud();
 
   stabilityInterval = setInterval(() => {
     if (gameEnded) return;
@@ -254,7 +310,7 @@ function updateScore() {
     }
   }
 
-  const towerHeight = (window.innerHeight - GROUND_HEIGHT) - topY;
+  const towerHeight = (canvas.height - GROUND_HEIGHT) - topY;
   score = Math.max(0, Math.round(towerHeight));
   scoreEl.innerText = String(score);
 }
@@ -270,25 +326,12 @@ function updateHud() {
 /* =========================
    Fail / success
 ========================= */
-function wireFailCheck() {
-  Events.on(engine, "afterUpdate", () => {
-    if (gameEnded) return;
-    if (!marshmallowPlaced) return;
-
-    updateScore();
-
-    if (hasTowerFailed()) {
-      endGame(false);
-    }
-  });
-}
-
 function hasTowerFailed() {
   if (!marshmallowBody) return false;
 
-  const floorLine = window.innerHeight - GROUND_HEIGHT - 5;
+  const floorLine = canvas.height - GROUND_HEIGHT - 5;
 
-  /* Fail if marshmallow reaches the floor zone */
+  // fail if marshmallow drops to floor zone
   if (marshmallowBody.position.y >= floorLine) return true;
 
   return false;
