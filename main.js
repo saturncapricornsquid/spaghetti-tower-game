@@ -1,435 +1,65 @@
-const { Engine, Render, Runner, World, Bodies, Body } = Matter;
-
-/* DOM */
-const canvas = document.getElementById("game");
-const hud = document.getElementById("hud");
-
-const timeEl = document.getElementById("time");
-const countEl = document.getElementById("count");
-const marshmallowCountEl = document.getElementById("marshmallowCount");
-const scoreEl = document.getElementById("score");
-const rotationEl = document.getElementById("rotation");
-const buildModeLabelEl = document.getElementById("buildModeLabel");
-const statusEl = document.getElementById("status");
-
-const rotateLeftBtn = document.getElementById("rotateLeft");
-const rotateRightBtn = document.getElementById("rotateRight");
-const toggleMaterialBtn = document.getElementById("toggleMaterial");
-const addBtn = document.getElementById("add");
+// DOM
+ modeEl = document.getElementById("mode");const canvas = document.getElementById("game");
+const toggleBtn = document.getElementById("toggle");
+const rotateBtn = document.getElementById("rotate");
 const resetBtn = document.getElementById("reset");
 
-const finalPanel = document.getElementById("finalPanel");
-const finalTitle = document.getElementById("finalTitle");
-const finalMessage = document.getElementById("finalMessage");
-const finalScore = document.getElementById("finalScore");
-const finalUsed = document.getElementById("finalUsed");
-const finalConnectorUsed = document.getElementById("finalConnectorUsed");
-const finalMarshmallow = document.getElementById("finalMarshmallow");
-const playAgainBtn = document.getElementById("playAgain");
+// Matter.js
+const { Engine, Render, Runner, World, Bodies } = Matter;
 
-/* Constants */
-const GROUND_HEIGHT = 80;
-const ROT_STEP = Math.PI / 12; // 15°
-const SPAGHETTI_LENGTH = 140;
-const SPAGHETTI_THICKNESS = 6;
-const CONNECTOR_RADIUS = 12;
-const FINAL_MARSHMALLOW_RADIUS = 22;
-
-/* State */
-let engine;
-let render;
-let runner;
-
-let spaghettiBodies = [];
-let connectorBodies = [];
-let finalMarshmallowBody = null;
-
-let spaghettiLeft = 20;
-let connectorLeft = 10;
-let score = 0;
-let timeLeft = 30;
+// State
+let mode = "spaghetti";
 let rotation = 0;
-let buildMode = "spaghetti"; // spaghetti | connector
-let gameEnded = false;
-let finalPlaced = false;
 
-let timerId = null;
-let stabilityId = null;
+// Engine
+const engine = Engine.create();
+engine.world.gravity.y = 0;
 
-let previewX = window.innerWidth / 2;
-let previewY = window.innerHeight / 2;
+const render = Render.create({
+  canvas,
+  engine,
+  options: {
+    width: window.innerWidth,
+    height: window.innerHeight,
+    wireframes: false,
+    background: "#f4f4f4"
+  }
+});
 
-let uiHandlersAttached = false;
-let keyboardAttached = false;
-let buildClickAttached = false;
-let previewAttached = false;
+const runner = Runner.create();
 
-/* Init */
-function initGame() {
-  stopTimers();
-  stopMatter();
+// Ground
+const ground = Bodies.rectangle(
+  window.innerWidth / 2,
+  window.innerHeight - 40,
+  window.innerWidth,
+  80,
+  { isStatic: true }
+);
 
-  spaghettiBodies = [];
-  connectorBodies = [];
-  finalMarshmallowBody = null;
+World.add(engine.world, ground);
 
-  spaghettiLeft = 20;
-  connectorLeft = 10;
-  score = 0;
-  timeLeft = 30;
+Render.run(render);
+Runner.run(runner, engine);
+
+// Buttons
+toggleBtn.addEventListener("click", () => {
+  mode = mode === "spaghetti" ? "marshmallow" : "spaghetti";
+  modeEl.textContent = mode;
+  console.log("Mode:", mode);
+});
+
+rotateBtn.addEventListener("click", () => {
+  rotation += 15;
+  console.log("Rotation:", rotation);
+  alert("Rotate clicked");
+});
+
+resetBtn.addEventListener("click", () => {
+  mode = "spaghetti";
   rotation = 0;
-  buildMode = "spaghetti";
-  gameEnded = false;
-  finalPlaced = false;
+  modeEl.textContent = mode;
+  alert("Reset clicked");
+});
 
-  hideFinalPanel();
-
-  canvas.width = window.innerWidth;
-  canvas.height = window.innerHeight;
-
-  engine = Engine.create();
-  engine.world.gravity.y = 0; // stable build phase
-
-  render = Render.create({
-    canvas,
-    engine,
-    options: {
-      width: canvas.width,
-      height: canvas.height,
-      wireframes: false,
-      background: "#f4f4f4"
-    }
-  });
-
-  runner = Runner.create();
-
-  const ground = Bodies.rectangle(
-    canvas.width / 2,
-    canvas.height - GROUND_HEIGHT / 2,
-    canvas.width,
-    GROUND_HEIGHT,
-    {
-      isStatic: true,
-      render: { fillStyle: "#666" }
-    }
-  );
-
-  World.add(engine.world, [ground]);
-
-  attachHandlers();
-
-  Render.run(render);
-  Runner.run(runner, engine);
-
-  updateHud();
-  statusEl.innerText = "Buttons should work now. Click anywhere outside the panel to place material.";
-  startTimer();
-}
-
-function stopMatter() {
-  if (runner) Runner.stop(runner);
-  if (render) Render.stop(render);
-}
-
-function stopTimers() {
-  if (timerId) clearInterval(timerId);
-  if (stabilityId) clearInterval(stabilityId);
-  timerId = null;
-  stabilityId = null;
-}
-
-/* Factories */
-function createSpaghetti(x, y) {
-  const stick = Bodies.rectangle(x, y, SPAGHETTI_LENGTH, SPAGHETTI_THICKNESS, {
-    isStatic: true,
-    render: { fillStyle: "#f4d03f" }
-  });
-  Body.setAngle(stick, rotation);
-  return stick;
-}
-
-function createConnector(x, y) {
-  return Bodies.circle(x, y, CONNECTOR_RADIUS, {
-    isStatic: true,
-    render: { fillStyle: "#fffaf5" }
-  });
-}
-
-function createFinalMarshmallow(x, y) {
-  return Bodies.circle(x, y, FINAL_MARSHMALLOW_RADIUS, {
-    isStatic: false,
-    density: 0.02,
-    friction: 0.8,
-    restitution: 0,
-    render: { fillStyle: "#ffffff" }
-  });
-}
-
-/* Placement */
-function placeSpaghetti(x, y) {
-  if (gameEnded || timeLeft <= 0 || spaghettiLeft <= 0) return;
-
-  const stick = createSpaghetti(x, y);
-  spaghettiBodies.push(stick);
-  World.add(engine.world, stick);
-
-  spaghettiLeft--;
-  score += 5;
-  updateHud();
-  statusEl.innerText = "Spaghetti placed.";
-}
-
-function placeConnector(x, y) {
-  if (gameEnded || timeLeft <= 0 || connectorLeft <= 0) return;
-
-  const connector = createConnector(x, y);
-  connectorBodies.push(connector);
-  World.add(engine.world, connector);
-
-  connectorLeft--;
-  score += 2;
-  updateHud();
-  statusEl.innerText = "Connector marshmallow placed.";
-}
-
-function placeFinalMarshmallow(x, y) {
-  if (gameEnded || timeLeft > 0 || finalPlaced) return;
-
-  // Unlock build pieces for test
-  engine.world.gravity.y = 1;
-  spaghettiBodies.forEach(body => Body.setStatic(body, false));
-  connectorBodies.forEach(body => Body.setStatic(body, false));
-
-  finalMarshmallowBody = createFinalMarshmallow(x, y);
-  finalPlaced = true;
-  World.add(engine.world, finalMarshmallowBody);
-
-  statusEl.innerText = "Final marshmallow placed. Structure is under test.";
-  startStabilityCheck();
-}
-
-/* Handlers */
-function attachHandlers() {
-  if (!uiHandlersAttached) {
-    uiHandlersAttached = true;
-
-    rotateLeftBtn.addEventListener("click", (event) => {
-      event.preventDefault();
-      event.stopPropagation();
-      if (buildMode === "spaghetti" && timeLeft > 0) {
-        rotation -= ROT_STEP;
-        updateHud();
-        statusEl.innerText = "Rotated -15°.";
-      }
-    });
-
-    rotateRightBtn.addEventListener("click", (event) => {
-      event.preventDefault();
-      event.stopPropagation();
-      if (buildMode === "spaghetti" && timeLeft > 0) {
-        rotation += ROT_STEP;
-        updateHud();
-        statusEl.innerText = "Rotated +15°.";
-      }
-    });
-
-    toggleMaterialBtn.addEventListener("click", (event) => {
-      event.preventDefault();
-      event.stopPropagation();
-      if (timeLeft > 0) {
-        buildMode = buildMode === "spaghetti" ? "connector" : "spaghetti";
-        updateHud();
-        statusEl.innerText =
-          `Build mode switched to ${buildMode === "spaghetti" ? "spaghetti" : "connector marshmallow"}.`;
-      }
-    });
-
-    addBtn.addEventListener("click", (event) => {
-      event.preventDefault();
-      event.stopPropagation();
-      if (timeLeft > 0) {
-        if (buildMode === "spaghetti") {
-          placeSpaghetti(canvas.width / 2, 120);
-        } else {
-          placeConnector(canvas.width / 2, 120);
-        }
-      } else {
-        placeFinalMarshmallow(canvas.width / 2, 90);
-      }
-    });
-
-    resetBtn.addEventListener("click", (event) => {
-      event.preventDefault();
-      event.stopPropagation();
-      initGame();
-    });
-
-    playAgainBtn.addEventListener("click", (event) => {
-      event.preventDefault();
-      event.stopPropagation();
-      initGame();
-    });
-  }
-
-  if (!keyboardAttached) {
-    keyboardAttached = true;
-    document.addEventListener("keydown", (event) => {
-      if (event.key.toLowerCase() === "m" && timeLeft > 0) {
-        buildMode = buildMode === "spaghetti" ? "connector" : "spaghetti";
-        updateHud();
-      }
-
-      if (event.key.toLowerCase() === "r" && buildMode === "spaghetti" && timeLeft > 0) {
-        rotation += ROT_STEP;
-        updateHud();
-      }
-    });
-  }
-
-  if (!buildClickAttached) {
-    buildClickAttached = true;
-    document.addEventListener("click", (event) => {
-      // Ignore clicks on HUD or its children
-      if (hud.contains(event.target)) return;
-
-      if (gameEnded) return;
-
-      const rect = canvas.getBoundingClientRect();
-      const x = event.clientX - rect.left;
-      const y = event.clientY - rect.top;
-
-      if (timeLeft > 0) {
-        if (buildMode === "spaghetti") {
-          placeSpaghetti(x, y);
-        } else {
-          placeConnector(x, y);
-        }
-      } else {
-        placeFinalMarshmallow(x, y);
-      }
-    });
-  }
-
-  if (!previewAttached) {
-    previewAttached = true;
-
-    document.addEventListener("mousemove", (event) => {
-      const rect = canvas.getBoundingClientRect();
-      previewX = event.clientX - rect.left;
-      previewY = event.clientY - rect.top;
-    });
-
-    Events.on(render, "afterRender", () => {
-      if (gameEnded || timeLeft <= 0) return;
-
-      const hudRect = hud.getBoundingClientRect();
-      const insideHud =
-        previewX >= hudRect.left &&
-        previewX <= hudRect.right &&
-        previewY >= hudRect.top &&
-        previewY <= hudRect.bottom;
-
-      if (insideHud) return;
-
-      const ctx = render.context;
-      ctx.save();
-      ctx.translate(previewX, previewY);
-      ctx.globalAlpha = 0.45;
-
-      if (buildMode === "spaghetti" && spaghettiLeft > 0) {
-        ctx.rotate(rotation);
-        ctx.fillStyle = "#d4ac0d";
-        ctx.fillRect(
-          -SPAGHETTI_LENGTH / 2,
-          -SPAGHETTI_THICKNESS / 2,
-          SPAGHETTI_LENGTH,
-          SPAGHETTI_THICKNESS
-        );
-      } else if (buildMode === "connector" && connectorLeft > 0) {
-        ctx.fillStyle = "#fffaf5";
-        ctx.beginPath();
-        ctx.arc(0, 0, CONNECTOR_RADIUS, 0, Math.PI * 2);
-        ctx.fill();
-      }
-
-      ctx.restore();
-    });
-  }
-}
-
-/* Timer */
-function startTimer() {
-  timerId = setInterval(() => {
-    if (gameEnded) return;
-
-    timeLeft--;
-    updateHud();
-
-    if (timeLeft <= 0) {
-      clearInterval(timerId);
-      timerId = null;
-      statusEl.innerText = "Time is up. Place the final marshmallow.";
-    }
-  }, 1000);
-}
-
-function startStabilityCheck() {
-  let secondsRemaining = 10;
-
-  stabilityId = setInterval(() => {
-    if (gameEnded) return;
-
-    secondsRemaining--;
-    updateHud();
-
-    if (finalMarshmallowBody && finalMarshmallowBody.position.y >= canvas.height - GROUND_HEIGHT - 5) {
-      endGame(false);
-      return;
-    }
-
-    if (secondsRemaining <= 0) {
-      endGame(true);
-    } else {
-      statusEl.innerText = `Tower must stand for ${secondsRemaining} seconds.`;
-    }
-  }, 1000);
-}
-
-/* HUD */
-function updateHud() {
-  const mins = Math.floor(timeLeft / 60);
-  const secs = String(Math.max(0, timeLeft % 60)).padStart(2, "0");
-  timeEl.innerText = `${String(mins).padStart(2, "0")}:${secs}`;
-  countEl.innerText = String(spaghettiLeft);
-  marshmallowCountEl.innerText = String(connectorLeft);
-  scoreEl.innerText = String(score);
-  rotationEl.innerText = `${((Math.round(rotation * 180 / Math.PI) % 360) + 360) % 360}°`;
-  buildModeLabelEl.innerText = buildMode === "spaghetti" ? "Spaghetti" : "Connector marshmallow";
-  toggleMaterialBtn.innerText =
-    buildMode === "spaghetti" ? "Switch to marshmallow" : "Switch to spaghetti";
-}
-
-/* Final panel */
-function endGame(success) {
-  if (gameEnded) return;
-  gameEnded = true;
-  stopTimers();
-
-  finalTitle.innerText = success ? "✅ Success!" : "❌ Failed";
-  finalMessage.innerText = success
-    ? "The tower held the final marshmallow for 10 seconds."
-    : "The tower did not survive the marshmallow test.";
-  finalScore.innerText = String(score);
-  finalUsed.innerText = String(20 - spaghettiLeft);
-  finalConnectorUsed.innerText = String(10 - connectorLeft);
-  finalMarshmallow.innerText = finalPlaced ? "Yes" : "No";
-
-  finalPanel.classList.remove("hidden");
-}
-
-function hideFinalPanel() {
-  finalPanel.classList.add("hidden");
-}
-
-initGame();
-``
+console.log("✅ main.js loaded and running");
