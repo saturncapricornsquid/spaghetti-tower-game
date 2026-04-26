@@ -1,32 +1,29 @@
-const { Engine, Render, Runner, World, Bodies, Body, Events, Constraint } = Matter;const { Engine, Render, Runner, World, Bodies,ElementById("count");
+const { Engine, Render, Runner, World, Bodies, Body, Events, Constraint } = Matter;
+
+/* DOM */
+const canvas = document.getElementById("game");
+const timeEl = document.getElementById("time");
+const countEl = document.getElementById("count");
 const marshmallowCountEl = document.getElementById("marshmallowCount");
 const scoreEl = document.getElementById("score");
 const rotationEl = document.getElementById("rotation");
 const buildModeLabelEl = document.getElementById("buildModeLabel");
-const currentPlayerEl = document.getElementById("currentPlayer");
 const statusEl = document.getElementById("status");
 
 const rotateLeftBtn = document.getElementById("rotateLeft");
 const rotateRightBtn = document.getElementById("rotateRight");
+const toggleMaterialBtn = document.getElementById("toggleMaterial");
 const addBtn = document.getElementById("add");
 const resetBtn = document.getElementById("reset");
-const toggleMaterialBtn = document.getElementById("toggleMaterial");
-
-const setupPanel = document.getElementById("setupPanel");
-const startGameBtn = document.getElementById("startGame");
-const playerInputs = Array.from(document.querySelectorAll(".playerInput"));
 
 const finalPanel = document.getElementById("finalPanel");
 const finalTitle = document.getElementById("finalTitle");
 const finalMessage = document.getElementById("finalMessage");
 const finalScore = document.getElementById("finalScore");
-const finalHeight = document.getElementById("finalHeight");
 const finalUsed = document.getElementById("finalUsed");
 const finalConnectorUsed = document.getElementById("finalConnectorUsed");
 const finalMarshmallow = document.getElementById("finalMarshmallow");
-const finalBuilder = document.getElementById("finalBuilder");
 const playAgainBtn = document.getElementById("playAgain");
-const changeTeamBtn = document.getElementById("changeTeam");
 
 /* Constants */
 const GROUND_HEIGHT = 80;
@@ -36,64 +33,29 @@ const SPAGHETTI_THICKNESS = 6;
 const CONNECTOR_RADIUS = 12;
 const FINAL_MARSHMALLOW_RADIUS = 22;
 const HUD_SAFE_WIDTH = 520;
-const HUD_SAFE_HEIGHT = 360;
+const HUD_SAFE_HEIGHT = 260;
 const SNAP_DISTANCE = 26;
 
 /* Game state */
-let engine = null;
-let render = null;
-let runner = null;
-
+let engine, render, runner;
 let spaghettiBodies = [];
 let connectorMarshmallows = [];
 let glueConstraints = [];
 let finalTopMarshmallow = null;
 
-let players = [];
-let currentPlayerIndex = 0;
-let lastBuilder = "";
-
 let spaghettiLeft = 20;
 let connectorMarshmallowsLeft = 10;
 let score = 0;
-let timeLeft = 30; // change to 18 * 60 later if you want
+let timeLeft = 30;
 let rotation = 0;
+let buildMode = "spaghetti"; // spaghetti | connector
 let gameEnded = false;
 let finalMarshmallowPlaced = false;
 
-let buildMode = "spaghetti"; // spaghetti | connector
 let countdownInterval = null;
 let stabilityInterval = null;
 let previewX = window.innerWidth / 2;
 let previewY = window.innerHeight / 2;
-
-let keyboardHandlerAttached = false;
-
-/* Setup */
-startGameBtn.onclick = () => {
-  const enteredNames = playerInputs
-    .map(input => input.value.trim())
-    .filter(name => name.length > 0);
-
-  if (enteredNames.length < 2) {
-    alert("Please enter at least 2 player names.");
-    return;
-  }
-
-  players = enteredNames;
-  setupPanel.style.display = "none";
-  initGame();
-};
-
-playAgainBtn.onclick = () => {
-  hideFinalPanel();
-  initGame();
-};
-
-changeTeamBtn.onclick = () => {
-  hideFinalPanel();
-  setupPanel.style.display = "flex";
-};
 
 /* Init */
 function initGame() {
@@ -110,12 +72,9 @@ function initGame() {
   score = 0;
   timeLeft = 30;
   rotation = 0;
+  buildMode = "spaghetti";
   gameEnded = false;
   finalMarshmallowPlaced = false;
-  buildMode = "spaghetti";
-
-  currentPlayerIndex = 0;
-  lastBuilder = players[0] || "—";
 
   previewX = window.innerWidth / 2;
   previewY = window.innerHeight / 2;
@@ -142,18 +101,14 @@ function initGame() {
   runner = Runner.create();
 
   createWorld();
-  attachCanvasHandlers();
-  attachUIHandlers();
-  attachEngineHandlers();
-  attachPreviewRenderer();
-  attachKeyboardHandlerOnce();
+  attachHandlers();
 
   Render.run(render);
   Runner.run(runner, engine);
 
   updateHud();
   statusEl.innerText =
-    `${players[currentPlayerIndex]}'s turn. Current material: spaghetti.`;
+    "Build with spaghetti or connector marshmallows. When time ends, place the final marshmallow.";
   startTimer();
 }
 
@@ -170,35 +125,22 @@ function createWorld() {
     }
   );
 
-  const leftWall = Bodies.rectangle(
-    -25,
-    canvas.height / 2,
-    50,
-    canvas.height,
-    { isStatic: true, render: { visible: false } }
-  );
+  const leftWall = Bodies.rectangle(-25, canvas.height / 2, 50, canvas.height, {
+    isStatic: true,
+    render: { visible: false }
+  });
 
-  const rightWall = Bodies.rectangle(
-    canvas.width + 25,
-    canvas.height / 2,
-    50,
-    canvas.height,
-    { isStatic: true, render: { visible: false } }
-  );
+  const rightWall = Bodies.rectangle(canvas.width + 25, canvas.height / 2, 50, canvas.height, {
+    isStatic: true,
+    render: { visible: false }
+  });
 
   World.add(engine.world, [ground, leftWall, rightWall]);
 }
 
 function stopMatter() {
-  if (runner) {
-    Runner.stop(runner);
-    runner = null;
-  }
-  if (render) {
-    Render.stop(render);
-    render = null;
-  }
-  engine = null;
+  if (runner) Runner.stop(runner);
+  if (render) Render.stop(render);
 }
 
 /* Factories */
@@ -210,14 +152,13 @@ function createSpaghetti(x, y, angle = 0) {
     restitution: 0.1,
     render: { fillStyle: "#f4d03f" }
   });
-
   Body.setAngle(stick, angle);
   return stick;
 }
 
 function createConnectorMarshmallow(x, y) {
   return Bodies.circle(x, y, CONNECTOR_RADIUS, {
-    label: "connectorMarshmallow",
+    label: "connector",
     density: 0.008,
     friction: 0.8,
     restitution: 0.05,
@@ -225,7 +166,7 @@ function createConnectorMarshmallow(x, y) {
   });
 }
 
-function createFinalTopMarshmallow(x, y) {
+function createFinalMarshmallow(x, y) {
   return Bodies.circle(x, y, FINAL_MARSHMALLOW_RADIUS, {
     label: "finalMarshmallow",
     density: 0.01,
@@ -235,18 +176,7 @@ function createFinalTopMarshmallow(x, y) {
   });
 }
 
-/* Turn-taking */
-function updateCurrentPlayer() {
-  currentPlayerEl.innerText = players[currentPlayerIndex] || "—";
-}
-
-function advanceTurn() {
-  lastBuilder = players[currentPlayerIndex] || "—";
-  currentPlayerIndex = (currentPlayerIndex + 1) % players.length;
-  updateCurrentPlayer();
-}
-
-/* Geometry helpers */
+/* Glue helpers */
 function worldPointOnBody(body, localX, localY = 0) {
   const cos = Math.cos(body.angle);
   const sin = Math.sin(body.angle);
@@ -262,18 +192,18 @@ function distance(a, b) {
   return Math.sqrt(dx * dx + dy * dy);
 }
 
-function stickEndpoints(body) {
+function stickEndpoints(stick) {
   return [
-    { localX: -SPAGHETTI_LENGTH / 2, world: worldPointOnBody(body, -SPAGHETTI_LENGTH / 2, 0) },
-    { localX:  SPAGHETTI_LENGTH / 2, world: worldPointOnBody(body,  SPAGHETTI_LENGTH / 2, 0) }
+    { localX: -SPAGHETTI_LENGTH / 2, world: worldPointOnBody(stick, -SPAGHETTI_LENGTH / 2, 0) },
+    { localX:  SPAGHETTI_LENGTH / 2, world: worldPointOnBody(stick,  SPAGHETTI_LENGTH / 2, 0) }
   ];
 }
 
-function addGlueConstraint(connectorBody, stickBody, localXOnStick) {
-  const constraint = Constraint.create({
-    bodyA: connectorBody,
+function addGlueConstraint(connector, stick, localXOnStick) {
+  const c = Constraint.create({
+    bodyA: connector,
     pointA: { x: 0, y: 0 },
-    bodyB: stickBody,
+    bodyB: stick,
     pointB: { x: localXOnStick, y: 0 },
     length: 0,
     stiffness: 0.9,
@@ -281,39 +211,38 @@ function addGlueConstraint(connectorBody, stickBody, localXOnStick) {
     render: { visible: false }
   });
 
-  glueConstraints.push(constraint);
-  World.add(engine.world, constraint);
+  glueConstraints.push(c);
+  World.add(engine.world, c);
 }
 
-function attachSpaghettiToNearbyConnectors(stickBody) {
-  const endpoints = stickEndpoints(stickBody);
+function attachSpaghettiToNearbyConnectors(stick) {
+  const endpoints = stickEndpoints(stick);
 
   for (const endpoint of endpoints) {
     for (const connector of connectorMarshmallows) {
       if (distance(endpoint.world, connector.position) <= SNAP_DISTANCE) {
-        addGlueConstraint(connector, stickBody, endpoint.localX);
+        addGlueConstraint(connector, stick, endpoint.localX);
       }
     }
   }
 }
 
-function attachConnectorToNearbySpaghetti(connectorBody) {
+function attachConnectorToNearbySpaghetti(connector) {
   for (const stick of spaghettiBodies) {
     const endpoints = stickEndpoints(stick);
-
     for (const endpoint of endpoints) {
-      if (distance(endpoint.world, connectorBody.position) <= SNAP_DISTANCE) {
-        addGlueConstraint(connectorBody, stick, endpoint.localX);
+      if (distance(endpoint.world, connector.position) <= SNAP_DISTANCE) {
+        addGlueConstraint(connector, stick, endpoint.localX);
       }
     }
   }
 }
 
 /* Placement */
-function placeSpaghetti(x, y, angle = rotation) {
+function placeSpaghetti(x, y) {
   if (gameEnded) return;
   if (timeLeft <= 0) {
-    statusEl.innerText = "Building time is over. Place the final marshmallow now.";
+    statusEl.innerText = "Time is up — place the final marshmallow.";
     return;
   }
   if (spaghettiLeft <= 0) {
@@ -321,27 +250,22 @@ function placeSpaghetti(x, y, angle = rotation) {
     return;
   }
 
-  const builderName = players[currentPlayerIndex];
-  const stick = createSpaghetti(x, y, angle);
-
+  const stick = createSpaghetti(x, y, rotation);
   spaghettiBodies.push(stick);
   World.add(engine.world, stick);
 
-  // Auto-glue to nearby connector marshmallows
   attachSpaghettiToNearbyConnectors(stick);
 
   spaghettiLeft--;
   updateScore();
   updateHud();
-
-  statusEl.innerText = `${builderName} placed spaghetti.`;
-  advanceTurn();
+  statusEl.innerText = "Spaghetti placed.";
 }
 
 function placeConnectorMarshmallow(x, y) {
   if (gameEnded) return;
   if (timeLeft <= 0) {
-    statusEl.innerText = "Building time is over. Place the final marshmallow now.";
+    statusEl.innerText = "Time is up — place the final marshmallow.";
     return;
   }
   if (connectorMarshmallowsLeft <= 0) {
@@ -349,40 +273,31 @@ function placeConnectorMarshmallow(x, y) {
     return;
   }
 
-  const builderName = players[currentPlayerIndex];
   const connector = createConnectorMarshmallow(x, y);
-
   connectorMarshmallows.push(connector);
   World.add(engine.world, connector);
 
-  // Auto-glue to nearby spaghetti endpoints
   attachConnectorToNearbySpaghetti(connector);
 
   connectorMarshmallowsLeft--;
   updateScore();
   updateHud();
-
-  statusEl.innerText = `${builderName} placed a connector marshmallow.`;
-  advanceTurn();
+  statusEl.innerText = "Connector marshmallow placed and glued to nearby spaghetti.";
 }
 
 function placeFinalTopMarshmallow(x, y) {
   if (gameEnded) return;
   if (finalMarshmallowPlaced) return;
   if (timeLeft > 0) {
-    statusEl.innerText = "You can only place the final marshmallow when the timer reaches 0.";
+    statusEl.innerText = "You can only place the final marshmallow when time reaches 0.";
     return;
   }
 
-  const builderName = players[currentPlayerIndex];
-
-  finalTopMarshmallow = createFinalTopMarshmallow(x, y);
+  finalTopMarshmallow = createFinalMarshmallow(x, y);
   finalMarshmallowPlaced = true;
   World.add(engine.world, finalTopMarshmallow);
 
-  statusEl.innerText = `${builderName} placed the final marshmallow. Tower must stand for 10 seconds...`;
-
-  advanceTurn();
+  statusEl.innerText = "Final marshmallow placed. Tower must stand for 10 seconds…";
   startStabilityCheck();
 }
 
@@ -394,17 +309,10 @@ function rotateNextPiece(delta) {
 
   rotation += delta;
   updateHud();
-
-  const degrees = normalisedDegrees(rotation);
-  statusEl.innerText = `Rotation set to ${degrees}°. ${players[currentPlayerIndex]}'s turn.`;
-}
-
-function normalisedDegrees(angleRadians) {
-  return ((Math.round((angleRadians * 180) / Math.PI) % 360) + 360) % 360;
 }
 
 /* Input */
-function attachCanvasHandlers() {
+function attachHandlers() {
   canvas.onmousemove = (event) => {
     const rect = canvas.getBoundingClientRect();
     previewX = event.clientX - rect.left;
@@ -422,7 +330,7 @@ function attachCanvasHandlers() {
 
     if (timeLeft > 0) {
       if (buildMode === "spaghetti") {
-        placeSpaghetti(x, y, rotation);
+        placeSpaghetti(x, y);
       } else {
         placeConnectorMarshmallow(x, y);
       }
@@ -430,20 +338,15 @@ function attachCanvasHandlers() {
       placeFinalTopMarshmallow(x, y);
     }
   };
-}
 
-function attachUIHandlers() {
   rotateLeftBtn.onclick = () => rotateNextPiece(-ROT_STEP);
   rotateRightBtn.onclick = () => rotateNextPiece(ROT_STEP);
 
   toggleMaterialBtn.onclick = () => {
     if (timeLeft <= 0) return;
-
     buildMode = buildMode === "spaghetti" ? "connector" : "spaghetti";
     updateHud();
-    statusEl.innerText = `${players[currentPlayerIndex]}'s turn. Current material: ${
-      buildMode === "spaghetti" ? "spaghetti" : "connector marshmallow"
-    }.`;
+    statusEl.innerText = `Current material: ${buildMode === "spaghetti" ? "spaghetti" : "connector marshmallow"}.`;
   };
 
   addBtn.onclick = () => {
@@ -451,7 +354,7 @@ function attachUIHandlers() {
 
     if (timeLeft > 0) {
       if (buildMode === "spaghetti") {
-        placeSpaghetti(canvas.width / 2, 120, rotation);
+        placeSpaghetti(canvas.width / 2, 120);
       } else {
         placeConnectorMarshmallow(canvas.width / 2, 120);
       }
@@ -460,14 +363,8 @@ function attachUIHandlers() {
     }
   };
 
-  resetBtn.onclick = () => {
-    initGame();
-  };
-}
-
-function attachKeyboardHandlerOnce() {
-  if (keyboardHandlerAttached) return;
-  keyboardHandlerAttached = true;
+  resetBtn.onclick = () => initGame();
+  playAgainBtn.onclick = () => initGame();
 
   document.addEventListener("keydown", (event) => {
     if (event.key.toLowerCase() === "r") rotateNextPiece(ROT_STEP);
@@ -477,15 +374,9 @@ function attachKeyboardHandlerOnce() {
     if (event.key.toLowerCase() === "m" && timeLeft > 0) {
       buildMode = buildMode === "spaghetti" ? "connector" : "spaghetti";
       updateHud();
-      statusEl.innerText = `${players[currentPlayerIndex]}'s turn. Current material: ${
-        buildMode === "spaghetti" ? "spaghetti" : "connector marshmallow"
-      }.`;
     }
-  });
-}
+  }, { once: true });
 
-/* Engine events */
-function attachEngineHandlers() {
   Events.on(engine, "afterUpdate", () => {
     if (gameEnded) return;
     if (!finalMarshmallowPlaced) return;
@@ -496,9 +387,7 @@ function attachEngineHandlers() {
       endGame(false);
     }
   });
-}
 
-function attachPreviewRenderer() {
   Events.on(render, "afterRender", () => {
     if (gameEnded) return;
     if (timeLeft <= 0) return;
@@ -518,9 +407,7 @@ function attachPreviewRenderer() {
         SPAGHETTI_LENGTH,
         SPAGHETTI_THICKNESS
       );
-    }
-
-    if (buildMode === "connector" && connectorMarshmallowsLeft > 0) {
+    } else if (buildMode === "connector" && connectorMarshmallowsLeft > 0) {
       ctx.fillStyle = "#fffaf5";
       ctx.beginPath();
       ctx.arc(0, 0, CONNECTOR_RADIUS, 0, Math.PI * 2);
@@ -542,7 +429,7 @@ function startTimer() {
     if (timeLeft <= 0) {
       clearInterval(countdownInterval);
       countdownInterval = null;
-      statusEl.innerText = `${players[currentPlayerIndex]}'s turn to place the final marshmallow.`;
+      statusEl.innerText = "Time is up — place the final marshmallow.";
     }
   }, 1000);
 }
@@ -558,7 +445,7 @@ function startStabilityCheck() {
     updateHud();
 
     if (secondsRemaining > 0) {
-      statusEl.innerText = `Tower must stand for ${secondsRemaining} seconds...`;
+      statusEl.innerText = `Tower must stand for ${secondsRemaining} seconds…`;
     } else {
       clearInterval(stabilityInterval);
       stabilityInterval = null;
@@ -568,20 +455,13 @@ function startStabilityCheck() {
 }
 
 function stopTimers() {
-  if (countdownInterval) {
-    clearInterval(countdownInterval);
-    countdownInterval = null;
-  }
-  if (stabilityInterval) {
-    clearInterval(stabilityInterval);
-    stabilityInterval = null;
-  }
+  if (countdownInterval) clearInterval(countdownInterval);
+  if (stabilityInterval) clearInterval(stabilityInterval);
 }
 
 /* Score / HUD */
 function updateScore() {
   const structuralBodies = [...spaghettiBodies, ...connectorMarshmallows];
-
   if (structuralBodies.length === 0) {
     score = 0;
     return;
@@ -597,6 +477,10 @@ function updateScore() {
   score = Math.max(0, Math.round(canvas.height - GROUND_HEIGHT - topY));
 }
 
+function normalisedDegrees(angleRadians) {
+  return ((Math.round((angleRadians * 180) / Math.PI) % 360) + 360) % 360;
+}
+
 function updateHud() {
   const mins = Math.floor(timeLeft / 60);
   const secs = String(Math.max(0, timeLeft % 60)).padStart(2, "0");
@@ -606,8 +490,6 @@ function updateHud() {
   scoreEl.innerText = String(score);
   rotationEl.innerText = `${normalisedDegrees(rotation)}°`;
   buildModeLabelEl.innerText = buildMode === "spaghetti" ? "Spaghetti" : "Connector marshmallow";
-  updateCurrentPlayer();
-
   toggleMaterialBtn.innerText =
     buildMode === "spaghetti" ? "Switch to marshmallow" : "Switch to spaghetti";
 }
@@ -633,11 +515,9 @@ function endGame(success) {
     : "The tower did not survive the marshmallow test.";
 
   finalScore.innerText = String(score);
-  finalHeight.innerText = String(score);
   finalUsed.innerText = String(20 - spaghettiLeft);
   finalConnectorUsed.innerText = String(10 - connectorMarshmallowsLeft);
   finalMarshmallow.innerText = finalTopMarshmallow ? "Yes" : "No";
-  finalBuilder.innerText = lastBuilder;
 
   finalPanel.classList.remove("hidden");
 }
@@ -648,11 +528,8 @@ function hideFinalPanel() {
 
 /* Resize */
 window.addEventListener("resize", () => {
-  if (players.length > 0 && setupPanel.style.display === "none") {
-    initGame();
-  }
+  initGame();
 });
 
-/* DOM references */
-const canvas = document.getElementById("game");
-const timeEl = document.getElementById("time");
+/* Start */
+initGame();
