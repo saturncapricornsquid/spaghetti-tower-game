@@ -1,4 +1,9 @@
-const { Engine, Render, Runner, World, Bodies, Body } = Matter;const { Engine, Render, Runner, World, Bodies");
+const { Engine, Render, Runner, World, Bodies, Body } = Matter;
+
+const canvas = document.getElementById("game");
+const hud = document.getElementById("hud");
+
+const timeEl = document.getElementById("time");
 const countEl = document.getElementById("count");
 const marshmallowCountEl = document.getElementById("marshmallowCount");
 const scoreEl = document.getElementById("score");
@@ -223,24 +228,3 @@ addBtn.addEventListener("click", (event) => {
 });
 
 resetBtn.addEventListener("click", (event) => {
-  event.preventDefault();
-  event.stopPropagation();
-  initGame();
-});
-
-document.addEventListener("keydown", (event) => {
-  if (event.key.toLowerCase() === "m") {
-    buildMode = buildMode === "spaghetti" ? "connector" : "spaghetti";
-    updateHud();
-  }
-  if (event.key.toLowerCase() === "r") {
-    rotation += ROT_STEP;
-    updateHud();
-  }
-});
-
-initGame();
-
-const canvas = document.getElementById("game");
-const hud = document.getElementById("hud");
-
