@@ -5,7 +5,7 @@
   <title>Spaghetti Tower Challenge</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-  <!-- Matter.js physics engine -->
+  <!-- ✅ Matter.js MUST be a real script tag -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.20.0/matter.min.js"></script>
 
   <style>
@@ -16,109 +16,56 @@
       overflow: hidden;
     }
 
-    canvas {
-      display: block;
-    }
-
-    /* HUD */
     #hud {
       position: fixed;
       top: 10px;
       left: 10px;
-      width: 360px;
+      width: 320px;
       background: white;
-      padding: 14px 16px;
+      padding: 14px;
       border-radius: 10px;
-      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
+      box-shadow: 0 2px 10px rgba(0,0,0,0.15);
       z-index: 10;
-      line-height: 1.6;
     }
 
     #hud button {
-      margin-top: 8px;
+      margin-top: 6px;
       margin-right: 6px;
-      padding: 8px 12px;
-      font-size: 14px;
+      padding: 6px 10px;
       cursor: pointer;
-      border: 1px solid #ccc;
-      border-radius: 6px;
-      background: #f8f8f8;
-    }
-
-    #hud button:hover {
-      background: #eeeeee;
     }
 
     #status {
       margin-top: 8px;
+      min-height: 32px;
       font-size: 13px;
-      min-height: 44px;
-      color: #333;
     }
 
-    /* Setup panel */
-    #setupPanel {
-      position: fixed;
-      inset: 0;
-      background: rgba(0, 0, 0, 0.45);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      z-index: 50;
+    canvas {
+      display: block;
     }
+  </style>
+</head>
+<body>
 
-    #setupCard {
-      background: white;
-      padding: 24px;
-      border-radius: 16px;
-      width: 380px;
-      max-width: 90vw;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
-    }
+  <div id="hud">
+    <div>⏱️ Time: <span id="time">00:30</span></div>
+    <div>🍝 Spaghetti left: <span id="count">20</span></div>
+    <div>🏆 Score: <span id="score">0</span></div>
+    <div>📐 Rotation: <span id="rotation">0°</span></div>
+    <div>👤 Current builder: <span id="currentPlayer">—</span></div>
 
-    #setupCard h2 {
-      margin-top: 0;
-      margin-bottom: 8px;
-    }
+    <div id="status">Waiting to start…</div>
 
-    #setupCard p {
-      margin-top: 0;
-      color: #444;
-    }
+    <button id="rotateLeft">Rotate -15°</button>
+    <button id="rotateRight">Rotate +15°</button>
+    <button id="add">Add spaghetti</button>
+    <button id="reset">Reset</button>
+  </div>
 
-    .playerInput {
-      width: 100%;
-      margin-bottom: 8px;
-      padding: 8px 10px;
-      font-size: 14px;
-      box-sizing: border-box;
-    }
+  <canvas id="game"></canvas>
 
-    #startGame {
-      margin-top: 8px;
-      padding: 10px 14px;
-      font-size: 14px;
-      cursor: pointer;
-      border: 1px solid #ccc;
-      border-radius: 8px;
-      background: #f8f8f8;
-    }
-
-    /* Final panel */
-    #finalPanel {
-      position: fixed;
-      inset: 0;
-      background: rgba(0, 0, 0, 0.45);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      z-index: 60;
-    }
-
-    #finalPanel.hidden {
-      display: none;
-    }
-
-    #finalCard {
-      background: white;
-      padding: 24px;
+  <!-- ✅ main.js MUST also be a real script tag -->
+  <script src="main.js"></script>
+</body>
+</html>
