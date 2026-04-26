@@ -1,113 +1,75 @@
-const { Engine, Render, Runner, World, Bodies, Events, Body } = Matter;const { Engine, Render, Runner, World, Bodies,Id("count");
-const scoreEl = document.getElementById("score");
-const rotationEl = document.getElementById("rotation");
-const statusEl = document.getElementById("status");
-const addBtn = document.getElementById("add");
-const resetBtn = document.getElementById("reset");
-const currentPlayerEl = document.getElementById("currentPlayer");
-
-const rotateLeftBtn = document.getElementById("rotateLeft");
-const rotateRightBtn = document.getElementById("rotateRight");
+const { Engine, Render, Runner, World, Bodies, Body, Events } = Matter;");
+const startGameBtn = document.getElementById("startGame");
 
 const finalPanel = document.getElementById("finalPanel");
 const finalTitle = document.getElementById("finalTitle");
 const finalMessage = document.getElementById("finalMessage");
 const finalScore = document.getElementById("finalScore");
-const finalHeight = document.getElementById("finalHeight");
 const finalUsed = document.getElementById("finalUsed");
-const finalMarshmallow = document.getElementById("finalMarshmallow");
 const finalBuilder = document.getElementById("finalBuilder");
 const playAgainBtn = document.getElementById("playAgain");
-const closePanelBtn = document.getElementById("closePanel");
 
-/* =========================
-   Constants
-========================= */
+/* Constants */
 const GROUND_HEIGHT = 80;
-const HUD_SAFE_WIDTH = 440;
-const HUD_SAFE_HEIGHT = 320;
-const SPAGHETTI_LENGTH = 140;
-const SPAGHETTI_THICKNESS = 6;
-const ROTATION_STEP = Math.PI / 12; // 15 degrees
+const ROT_STEP = Math.PI / 12;
 
-/* =========================
-   Customisable player names
-   Change these to your team names
-========================= */
-let players = ["Jo", "Alex", "Priya"];
+/* Game state */
+let engine, render, runner;
+let spaghetti = [];
+let marshmallow = null;
 
-/* =========================
-   Game state
-========================= */
-let engine;
-let render;
-let runner;
-let ground;
-let leftWall;
-let rightWall;
-
-let spaghettiBodies = [];
-let marshmallowBody = null;
+let players = [];
+let currentPlayer = 0;
+let lastBuilder = "";
 
 let spaghettiLeft = 20;
-let marshmallowPlaced = false;
-let gameEnded = false;
-let timeLeft = 30; // change to 18 * 60 later if you want
-let countdownInterval = null;
-let stabilityInterval = null;
 let score = 0;
+let timeLeft = 30;
+let rotation = 0;
+let gameEnded = false;
 
-/* Turn-taking */
-let currentPlayerIndex = 0;
-let lastBuilder = players[0];
+/* Setup */
+startGameBtn.onclick = () => {
+  const inputs = document.querySelectorAll(".playerInput");
+  players = [...inputs].map(i => i.value.trim()).filter(v => v);
 
-/* Preview / placement */
-let previewX = window.innerWidth / 2;
-let previewY = window.innerHeight / 2;
-let nextRotation = 0;
+  if (players.length < 2) {
+    alert("Please enter at least 2 player names");
+    return;
+  }
 
-/* Listener guard */
-let keyboardListenerAttached = false;
+  setupPanel.style.display = "none";
+  initGame();
+};
 
-/* =========================
-   Initialisation
-========================= */
+playAgainBtn.onclick = () => {
+  finalPanel.classList.add("hidden");
+  setupPanel.style.display = "flex";
+};
+
+/* Init */
 function initGame() {
-  clearTimers();
-
-  spaghettiBodies = [];
-  marshmallowBody = null;
+  spaghetti = [];
+  marshmallow = null;
   spaghettiLeft = 20;
-  marshmallowPlaced = false;
-  gameEnded = false;
-  timeLeft = 30;
   score = 0;
-  nextRotation = 0;
-  previewX = window.innerWidth / 2;
-  previewY = window.innerHeight / 2;
-
-  currentPlayerIndex = 0;
+  timeLeft = 30;
+  rotation = 0;
+  currentPlayer = 0;
   lastBuilder = players[0];
+  gameEnded = false;
 
-  hideFinalPanel();
-
-  canvas.width = window.innerWidth;
-  canvas.height = window.innerHeight;
-
-  if (render) {
-    Render.stop(render);
-  }
-
-  if (runner) {
-    Runner.stop(runner);
-  }
+  updateHud();
 
   engine = Engine.create();
   engine.world.gravity.y = 1;
 
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+
   render = Render.create({
-    canvas: canvas,
-    engine: engine,
+    canvas,
+    engine,
     options: {
       width: canvas.width,
       height: canvas.height,
@@ -117,182 +79,125 @@ function initGame() {
   });
 
   runner = Runner.create();
-
-  createWorldBounds();
-  attachCanvasHandlers();
-  attachUiHandlers();
-  attachEngineHandlers();
-  attachRenderPreview();
-
-  updateHud();
-  updateCurrentPlayer();
-
-  statusEl.innerText =
-    `Current builder: ${players[currentPlayerIndex]}. Move your mouse in the grey area. Press R or use rotate buttons. Click to place spaghetti.`;
-
   Render.run(render);
   Runner.run(runner, engine);
 
-  startCountdown();
-}
-
-/* =========================
-   World setup
-========================= */
-function createWorldBounds() {
-  ground = Bodies.rectangle(
+  const ground = Bodies.rectangle(
     canvas.width / 2,
     canvas.height - GROUND_HEIGHT / 2,
     canvas.width,
     GROUND_HEIGHT,
-    {
-      isStatic: true,
-      label: "ground",
-      render: { fillStyle: "#666" }
-    }
+    { isStatic: true }
   );
 
-  leftWall = Bodies.rectangle(
-    -25,
-    canvas.height / 2,
-    50,
-    canvas.height,
-    {
-      isStatic: true,
-      render: { visible: false }
-    }
-  );
+  World.add(engine.world, ground);
 
-  rightWall = Bodies.rectangle(
-    canvas.width + 25,
-    canvas.height / 2,
-    50,
-    canvas.height,
-    {
-      isStatic: true,
-      render: { visible: false }
-    }
-  );
-
-  World.add(engine.world, [ground, leftWall, rightWall]);
+  startTimer();
 }
 
-/* =========================
-   Factories
-========================= */
-function createSpaghetti(x, y, angle = 0) {
-  const body = Bodies.rectangle(
-    x,
-    y,
-    SPAGHETTI_LENGTH,
-    SPAGHETTI_THICKNESS,
-    {
-      label: "spaghetti",
-      density: 0.0004,
-      friction: 0.4,
-      restitution: 0.1,
-      render: { fillStyle: "#f4d03f" }
-    }
-  );
-
-  Body.setAngle(body, angle);
-  return body;
-}
-
-function createMarshmallow(x, y) {
-  return Bodies.circle(x, y, 22, {
-    label: "marshmallow",
-    density: 0.01,
-    friction: 0.6,
-    restitution: 0.05,
-    render: { fillStyle: "#ffffff" }
-  });
-}
-
-/* =========================
-   Turn-taking helpers
-========================= */
-function updateCurrentPlayer() {
-  if (currentPlayerEl) {
-    currentPlayerEl.innerText = players[currentPlayerIndex];
-  }
-}
-
-function advanceTurn() {
-  lastBuilder = players[currentPlayerIndex];
-  currentPlayerIndex = (currentPlayerIndex + 1) % players.length;
-  updateCurrentPlayer();
-}
-
-/* =========================
-   Placement helpers
-========================= */
-function placeSpaghetti(x, y, angle = nextRotation) {
+/* Placement */
+canvas.onclick = e => {
   if (gameEnded) return;
 
-  if (timeLeft <= 0) {
-    statusEl.innerText = "Building time is over. Place the marshmallow now.";
-    return;
+  const x = e.clientX;
+  const y = e.clientY;
+
+  if (timeLeft > 0 && spaghettiLeft > 0) {
+    placeSpaghetti(x, y);
+  } else if (!marshmallow) {
+    placeMarshmallow(x, y);
   }
+};
 
-  if (spaghettiLeft <= 0) {
-    statusEl.innerText = "No spaghetti left. Wait for the marshmallow phase.";
-    return;
-  }
-
-  const builderName = players[currentPlayerIndex];
-
-  const stick = createSpaghetti(x, y, angle);
-  spaghettiBodies.push(stick);
+function placeSpaghetti(x, y) {
+  const stick = Bodies.rectangle(x, y, 140, 6);
+  Body.setAngle(stick, rotation);
+  spaghetti.push(stick);
   World.add(engine.world, stick);
 
   spaghettiLeft--;
+  lastBuilder = players[currentPlayer];
+  currentPlayer = (currentPlayer + 1) % players.length;
+
   updateScore();
   updateHud();
-
-  statusEl.innerText = `${builderName} placed spaghetti.`;
-
-  advanceTurn();
 }
 
 function placeMarshmallow(x, y) {
-  if (gameEnded) return;
-  if (marshmallowPlaced) return;
+  marshmallow = Bodies.circle(x, y, 22, { density: 0.01 });
+  World.add(engine.world, marshmallow);
 
-  if (timeLeft > 0) {
-    statusEl.innerText = "You can only place the marshmallow when the timer reaches 0.";
-    return;
-  }
-
-  const builderName = players[currentPlayerIndex];
-
-  marshmallowBody = createMarshmallow(x, y);
-  marshmallowPlaced = true;
-  World.add(engine.world, marshmallowBody);
-
-  statusEl.innerText = `${builderName} placed the marshmallow. Tower must stand for 10 seconds...`;
-
-  /* Count marshmallow as a turn as well */
-  advanceTurn();
-
-  startStabilityCheck();
+  statusEl.innerText = "Marshmallow placed – hold for 10 seconds!";
+  setTimeout(() => endGame(true), 10000);
 }
 
-/* =========================
-   Rotation helpers
-========================= */
-function rotateNextPiece(deltaRadians) {
-  if (gameEnded) return;
-  if (timeLeft <= 0) return;
+/* Controls */
+rotateLeftBtn.onclick = () => rotation -= ROT_STEP;
+rotateRightBtn.onclick = () => rotation += ROT_STEP;
 
-  nextRotation += deltaRadians;
-  updateHud();
+document.addEventListener("keydown", e => {
+  if (e.key.toLowerCase() === "r") rotation += ROT_STEP;
+});
 
-  const degrees = ((Math.round((nextRotation * 180) / Math.PI) % 360) + 360) % 360;
+addBtn.onclick = () => placeSpaghetti(canvas.width / 2, 120);
+resetBtn.onclick = () => location.reload();
 
+/* Timer */
+function startTimer() {
+  const interval = setInterval(() => {
+    if (gameEnded) return;
 
-/* =========================
-   DOM references
-========================= */
+    timeLeft--;
+    updateHud();
+
+    if (timeLeft <= 0) {
+      clearInterval(interval);
+      statusEl.innerText = "Place the marshmallow!";
+    }
+  }, 1000);
+}
+
+/* Score */
+function updateScore() {
+  let top = Infinity;
+  spaghetti.forEach(s => top = Math.min(top, s.bounds.min.y));
+  score = Math.max(0, Math.round(canvas.height - GROUND_HEIGHT - top));
+}
+
+/* HUD */
+function updateHud() {
+  timeEl.innerText = `00:${String(timeLeft).padStart(2, "0")}`;
+  countEl.innerText = spaghettiLeft;
+  scoreEl.innerText = score;
+  rotationEl.innerText = `${Math.round(rotation * 180 / Math.PI) % 360}°`;
+  currentPlayerEl.innerText = players[currentPlayer];
+  statusEl.innerText = `${players[currentPlayer]}'s turn`;
+}
+
+/* End */
+function endGame(success) {
+  gameEnded = true;
+
+  finalTitle.innerText = success ? "✅ Success!" : "❌ Failed";
+  finalMessage.innerText = "Round complete";
+  finalScore.innerText = score;
+  finalUsed.innerText = 20 - spaghettiLeft;
+  finalBuilder.innerText = lastBuilder;
+
+  finalPanel.classList.remove("hidden");
+}
+
+/* DOM */
 const canvas = document.getElementById("game");
 const timeEl = document.getElementById("time");
+const countEl = document.getElementById("count");
+const scoreEl = document.getElementById("score");
+const rotationEl = document.getElementById("rotation");
+const currentPlayerEl = document.getElementById("currentPlayer");
+const statusEl = document.getElementById("status");
+
+const rotateLeftBtn = document.getElementById("rotateLeft");
+const rotateRightBtn = document.getElementById("rotateRight");
+const addBtn = document.getElementById("add");
+const resetBtn = document.getElementById("reset");
+
