@@ -289,7 +289,7 @@ function updateScore() {
   scoreEl.textContent = "Score: " + score;
 }
 
-// Start
 initGame();
 
 console.log("✅ FULL CHALLENGE MODE ACTIVE");
+
