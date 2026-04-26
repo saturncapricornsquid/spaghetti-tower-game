@@ -5,7 +5,7 @@
   <title>Spaghetti Tower Challenge</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-  <!-- TYPE THIS SCRIPT LINE MANUALLY HERE -->
+  __MATTER_SCRIPT__
 
   <style>
     body {
@@ -137,3 +137,79 @@
       line-height: 1.8;
     }
 
+    .finalButtons {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 16px;
+    }
+
+    .finalButtons button {
+      padding: 8px 14px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      background: #f7f7f7;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Team setup -->
+  <div id="setupPanel">
+    <div id="setupCard">
+      <h2>Team setup</h2>
+      <p>Enter player names (2–5 recommended) and start the round.</p>
+
+      <input class="playerInput" placeholder="Player 1" />
+      <input class="playerInput" placeholder="Player 2" />
+      <input class="playerInput" placeholder="Player 3" />
+      <input class="playerInput" placeholder="Player 4 (optional)" />
+      <input class="playerInput" placeholder="Player 5 (optional)" />
+
+      <button id="startGame">Start game</button>
+    </div>
+  </div>
+
+  <!-- HUD -->
+  <div id="hud">
+    <div>⏱️ Time: <span id="time">00:30</span></div>
+    <div>🍝 Spaghetti left: <span id="count">20</span></div>
+    <div>🏆 Score: <span id="score">0</span></div>
+    <div>📐 Rotation: <span id="rotation">0°</span></div>
+    <div>👤 Current builder: <span id="currentPlayer">—</span></div>
+
+    <div id="status">Waiting to start…</div>
+
+    <button id="rotateLeft">Rotate -15°</button>
+    <button id="rotateRight">Rotate +15°</button>
+    <button id="add">Add spaghetti (centre)</button>
+    <button id="reset">Reset round</button>
+  </div>
+
+  <canvas id="game"></canvas>
+
+  <!-- Final panel -->
+  <div id="finalPanel" class="hidden">
+    <div id="finalCard">
+      <h2 id="finalTitle">Round complete</h2>
+      <p id="finalMessage">Your result will appear here.</p>
+
+      <div class="finalStats">
+        <div><strong>Final score:</strong> <span id="finalScore">0</span></div>
+        <div><strong>Height:</strong> <span id="finalHeight">0</span></div>
+        <div><strong>Spaghetti used:</strong> <span id="finalUsed">0</span></div>
+        <div><strong>Marshmallow placed:</strong> <span id="finalMarshmallow">No</span></div>
+        <div><strong>Last builder:</strong> <span id="finalBuilder">—</span></div>
+      </div>
+
+      <div class="finalButtons">
+        <button id="playAgain">Play again</button>
+        <button id="changeTeam">Change team</button>
+      </div>
+    </div>
+  </div>
+
+  __MAIN_SCRIPT__
+</body>
+</html>
