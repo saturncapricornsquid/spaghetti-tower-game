@@ -1,21 +1,4 @@
-const { Engine, Render, Runner, World, Bodies, Body, Events, Constraint } = Matter;
-
-/* DOM */
-const canvas = document.getElementById("game");
-const hud = document.getElementById("hud");
-
-const timeEl = document.getElementById("time");
-const countEl = document.getElementById("count");
-const marshmallowCountEl = document.getElementById("marshmallowCount");
-const scoreEl = document.getElementById("score");
-const rotationEl = document.getElementById("rotation");
-const buildModeLabelEl = document.getElementById("buildModeLabel");
-const statusEl = document.getElementById("status");
-
-const rotateLeftBtn = document.getElementById("rotateLeft");
-const rotateRightBtn = document.getElementById("rotateRight");
-const toggleMaterialBtn = document.getElementById("toggleMaterial");
-const addBtn = document.getElementById("add");
+const { Engine, Render, Runner, World, Bodies, Body, Events, Constraint } = Matter;const { Engine, Render,Btn = document.getElementById("add");
 const resetBtn = document.getElementById("reset");
 
 const finalPanel = document.getElementById("finalPanel");
@@ -59,7 +42,8 @@ let timerId = null;
 let stabilityId = null;
 let previewX = window.innerWidth / 2;
 let previewY = window.innerHeight / 2;
-let keyboardAttached = false;
+let handlersAttached = false;
+let previewAttached = false;
 
 /* Init */
 function initGame() {
@@ -111,7 +95,7 @@ function initGame() {
   Runner.run(runner, engine);
 
   updateHud();
-  statusEl.innerText = "Click anywhere outside the panel to place material. Press M to switch material.";
+  statusEl.innerText = "Click outside the control panel to place material. Press M to switch material.";
   startTimer();
 }
 
@@ -281,13 +265,16 @@ function placeFinalMarshmallow(x, y) {
 
 /* Handlers */
 function attachHandlers() {
-  canvas.onmousemove = (event) => {
+  if (handlersAttached) return;
+  handlersAttached = true;
+
+  canvas.addEventListener("mousemove", (event) => {
     const rect = canvas.getBoundingClientRect();
     previewX = event.clientX - rect.left;
     previewY = event.clientY - rect.top;
-  };
+  });
 
-  canvas.onclick = (event) => {
+  canvas.addEventListener("click", (event) => {
     if (gameEnded) return;
 
     const hudRect = hud.getBoundingClientRect();
@@ -315,12 +302,11 @@ function attachHandlers() {
     } else {
       placeFinalMarshmallow(x, y);
     }
-  };
+  });
 
   rotateLeftBtn.addEventListener("click", (event) => {
     event.preventDefault();
     event.stopPropagation();
-
     if (buildMode === "spaghetti" && timeLeft > 0) {
       rotation -= ROT_STEP;
       updateHud();
@@ -331,7 +317,6 @@ function attachHandlers() {
   rotateRightBtn.addEventListener("click", (event) => {
     event.preventDefault();
     event.stopPropagation();
-
     if (buildMode === "spaghetti" && timeLeft > 0) {
       rotation += ROT_STEP;
       updateHud();
@@ -342,7 +327,6 @@ function attachHandlers() {
   toggleMaterialBtn.addEventListener("click", (event) => {
     event.preventDefault();
     event.stopPropagation();
-
     if (timeLeft <= 0) return;
 
     buildMode = buildMode === "spaghetti" ? "connector" : "spaghetti";
@@ -353,7 +337,6 @@ function attachHandlers() {
   addBtn.addEventListener("click", (event) => {
     event.preventDefault();
     event.stopPropagation();
-
     if (timeLeft > 0) {
       if (buildMode === "spaghetti") {
         placeSpaghetti(canvas.width / 2, 120);
@@ -377,57 +360,57 @@ function attachHandlers() {
     initGame();
   });
 
-  if (!keyboardAttached) {
-    keyboardAttached = true;
-    document.addEventListener("keydown", (event) => {
-      if (event.key.toLowerCase() === "m" && timeLeft > 0) {
-        buildMode = buildMode === "spaghetti" ? "connector" : "spaghetti";
-        updateHud();
+  document.addEventListener("keydown", (event) => {
+    if (event.key.toLowerCase() === "m" && timeLeft > 0) {
+      buildMode = buildMode === "spaghetti" ? "connector" : "spaghetti";
+      updateHud();
+    }
+    if (event.key.toLowerCase() === "r" && buildMode === "spaghetti" && timeLeft > 0) {
+      rotation += ROT_STEP;
+      updateHud();
+    }
+  });
+
+  if (!previewAttached) {
+    previewAttached = true;
+    Events.on(render, "afterRender", () => {
+      if (gameEnded) return;
+      if (timeLeft <= 0) return;
+
+      const hudRect = hud.getBoundingClientRect();
+      const canvasRect = canvas.getBoundingClientRect();
+      const insideHud =
+        previewX + canvasRect.left >= hudRect.left &&
+        previewX + canvasRect.left <= hudRect.right &&
+        previewY + canvasRect.top >= hudRect.top &&
+        previewY + canvasRect.top <= hudRect.bottom;
+
+      if (insideHud) return;
+
+      const ctx = render.context;
+      ctx.save();
+      ctx.translate(previewX, previewY);
+      ctx.globalAlpha = 0.45;
+
+      if (buildMode === "spaghetti" && spaghettiLeft > 0) {
+        ctx.rotate(rotation);
+        ctx.fillStyle = "#d4ac0d";
+        ctx.fillRect(
+          -SPAGHETTI_LENGTH / 2,
+          -SPAGHETTI_THICKNESS / 2,
+          SPAGHETTI_LENGTH,
+          SPAGHETTI_THICKNESS
+        );
+      } else if (buildMode === "connector" && connectorLeft > 0) {
+        ctx.fillStyle = "#fffaf5";
+        ctx.beginPath();
+        ctx.arc(0, 0, CONNECTOR_RADIUS, 0, Math.PI * 2);
+        ctx.fill();
       }
-      if (event.key.toLowerCase() === "r" && buildMode === "spaghetti" && timeLeft > 0) {
-        rotation += ROT_STEP;
-        updateHud();
-      }
+
+      ctx.restore();
     });
   }
-
-  Events.on(render, "afterRender", () => {
-    if (gameEnded) return;
-    if (timeLeft <= 0) return;
-
-    const hudRect = hud.getBoundingClientRect();
-    const canvasRect = canvas.getBoundingClientRect();
-    const insideHud =
-      previewX + canvasRect.left >= hudRect.left &&
-      previewX + canvasRect.left <= hudRect.right &&
-      previewY + canvasRect.top >= hudRect.top &&
-      previewY + canvasRect.top <= hudRect.bottom;
-
-    if (insideHud) return;
-
-    const ctx = render.context;
-    ctx.save();
-    ctx.translate(previewX, previewY);
-    ctx.globalAlpha = 0.45;
-
-    if (buildMode === "spaghetti" && spaghettiLeft > 0) {
-      ctx.rotate(rotation);
-      ctx.fillStyle = "#d4ac0d";
-      ctx.fillRect(
-        -SPAGHETTI_LENGTH / 2,
-        -SPAGHETTI_THICKNESS / 2,
-        SPAGHETTI_LENGTH,
-        SPAGHETTI_THICKNESS
-      );
-    } else if (buildMode === "connector" && connectorLeft > 0) {
-      ctx.fillStyle = "#fffaf5";
-      ctx.beginPath();
-      ctx.arc(0, 0, CONNECTOR_RADIUS, 0, Math.PI * 2);
-      ctx.fill();
-    }
-
-    ctx.restore();
-  });
 }
 
 /* Timer */
@@ -474,12 +457,6 @@ function stopTimers() {
   if (stabilityId) clearInterval(stabilityId);
   timerId = null;
   stabilityId = null;
-}
-
-/* Matter */
-function stopMatter() {
-  if (runner) Runner.stop(runner);
-  if (render) Render.stop(render);
 }
 
 /* Score / HUD */
@@ -539,3 +516,19 @@ function hideFinalPanel() {
 
 /* Start */
 initGame();
+
+/* DOM */
+const canvas = document.getElementById("game");
+const hud = document.getElementById("hud");
+
+const timeEl = document.getElementById("time");
+const countEl = document.getElementById("count");
+const marshmallowCountEl = document.getElementById("marshmallowCount");
+const scoreEl = document.getElementById("score");
+const rotationEl = document.getElementById("rotation");
+const buildModeLabelEl = document.getElementById("buildModeLabel");
+const statusEl = document.getElementById("status");
+
+const rotateLeftBtn = document.getElementById("rotateLeft");
+const rotateRightBtn = document.getElementById("rotateRight");
+const toggleMaterialBtn = document.getElementById("toggleMaterial");
