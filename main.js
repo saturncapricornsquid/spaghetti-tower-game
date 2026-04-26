@@ -21,17 +21,29 @@ var Events = Matter.Events;
 var mode = "spaghetti";
 var rotation = 0;
 var spaghetti = [];
-var glue = [];            // ✅ renamed from marshmallow
+var glue = [];
 var constraints = [];
 
 var engine, render, runner;
 
 var SNAP_DISTANCE = 25;
 
-// Challenge state
+// Challenge
 var challengeMode = false;
 var finalPlaced = false;
 var timer = 5;
+
+// ✅ NEW: Smooth snap animation
+function animateSnap(body) {
+  var scaleUp = 1.25;
+  var scaleDown = 1;
+
+  Body.scale(body, scaleUp, scaleUp);
+
+  setTimeout(function () {
+    Body.scale(body, scaleDown / scaleUp, scaleDown / scaleUp);
+  }, 120);
+}
 
 // Init
 function initGame() {
@@ -86,7 +98,7 @@ function initGame() {
   Events.on(engine, "afterUpdate", checkBreakage);
 }
 
-// HUD ✅ (fixes mode text)
+// HUD
 function updateHUD() {
   var text = mode;
   if (challengeMode) text += " (FINAL)";
@@ -94,7 +106,7 @@ function updateHUD() {
   rotationEl.textContent = rotation;
 }
 
-// Distance helper
+// Distance
 function distance(a, b) {
   return Math.sqrt(
     (a.x - b.x) * (a.x - b.x) +
@@ -102,12 +114,16 @@ function distance(a, b) {
   );
 }
 
-// Glue snapping
+// ✅ Glue snapping with animation
 function glueStick(stick) {
   for (var i = 0; i < glue.length; i++) {
     var g = glue[i];
 
     if (distance(g.position, stick.position) < SNAP_DISTANCE) {
+
+      animateSnap(g);      // ✅ animate glue
+      animateSnap(stick);  // ✅ animate stick
+
       var c = Constraint.create({
         bodyA: g,
         bodyB: stick,
@@ -133,10 +149,12 @@ function createSpaghetti(x, y) {
   World.add(engine.world, stick);
   spaghetti.push(stick);
 
+  animateSnap(stick);  // ✅ visual feedback
+
   glueStick(stick);
 }
 
-// Create glue ✅ (blue + renamed)
+// Create glue (blue ✅)
 function createGlue(x, y, isFinal) {
   var g = Bodies.circle(x, y, isFinal ? 18 : 12, {
     isStatic: !challengeMode,
@@ -146,6 +164,8 @@ function createGlue(x, y, isFinal) {
   World.add(engine.world, g);
   glue.push(g);
 
+  animateSnap(g);  // ✅ animation
+
   for (var i = 0; i < spaghetti.length; i++) {
     glueStick(spaghetti[i]);
   }
@@ -153,7 +173,7 @@ function createGlue(x, y, isFinal) {
   if (isFinal) startTest();
 }
 
-// Click placement
+// Click
 document.addEventListener("click", function (event) {
   if (event.target.closest("#hud")) return;
 
@@ -173,7 +193,7 @@ document.addEventListener("click", function (event) {
   }
 });
 
-// Buttons ✅ (fixes mode toggle text)
+// Buttons
 document.getElementById("toggle").onclick = function () {
   mode = mode === "spaghetti" ? "glue" : "spaghetti";
   updateHUD();
@@ -198,7 +218,7 @@ document.addEventListener("keydown", function (e) {
   }
 });
 
-// Start test
+// Test
 function startTest() {
   engine.world.gravity.y = 1;
 
@@ -242,7 +262,7 @@ function checkBreakage() {
   }
 }
 
-// ✅ Score (single clean version — no duplicates)
+// Score
 function updateScore() {
   var highest = canvas.height;
   var allBodies = spaghetti.concat(glue);
@@ -257,7 +277,7 @@ function updateScore() {
   scoreEl.textContent = "Score: " + score;
 }
 
-// UI result (no alerts)
+// Overlay result
 function showResult(success) {
   var overlay = document.getElementById("overlay");
   var text = document.getElementById("resultText");
@@ -268,4 +288,3 @@ function showResult(success) {
 
 // Start
 initGame();
-``
