@@ -40,3 +40,47 @@
       margin-right: 6px;
       padding: 8px 12px;
       font-size: 14px;
+      cursor: pointer;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      background: #f8f8f8;
+    }
+
+    #hud button:hover {
+      background: #eeeeee;
+    }
+
+    #status {
+      margin-top: 8px;
+      font-size: 13px;
+      min-height: 48px;
+      color: #333;
+    }
+  </style>
+</head>
+<body>
+
+  <div id="hud">
+    <div>⏱️ Time: <span id="time">00:30</span></div>
+    <div>🍝 Spaghetti left: <span id="count">20</span></div>
+    <div>🤍 Marshmallows left: <span id="marshmallowCount">10</span></div>
+    <div>🏆 Score: <span id="score">0</span></div>
+    <div>📐 Rotation: <span id="rotation">0°</span></div>
+    <div>🧱 Build mode: <span id="buildModeLabel">Spaghetti</span></div>
+
+    <div id="status">
+      Click outside this panel to place material. Press <strong>M</strong> to switch material. Press <strong>R</strong> to rotate spaghetti.
+    </div>
+
+    <button id="rotateLeft">Rotate -15°</button>
+    <button id="rotateRight">Rotate +15°</button>
+    <button id="toggleMaterial">Switch to marshmallow</button>
+    <button id="add">Add material (centre)</button>
+    <button id="reset">Reset round</button>
+  </div>
+
+  <canvas id="game"></canvas>
+
+  <script src="main.js"></script>
+</body>
+</html>
