@@ -5,8 +5,7 @@
   <title>Spaghetti Tower Challenge</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-  <!-- Matter.js physics engine -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.20.0/matter.min.js"></script>
+  <!-- TYPE THIS SCRIPT LINE MANUALLY HERE -->
 
   <style>
     body {
@@ -38,3 +37,103 @@
       margin-top: 8px;
       margin-right: 6px;
       padding: 8px 12px;
+      font-size: 14px;
+      cursor: pointer;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      background: #f8f8f8;
+    }
+
+    #hud button:hover {
+      background: #eeeeee;
+    }
+
+    #status {
+      margin-top: 8px;
+      font-size: 13px;
+      min-height: 44px;
+      color: #333;
+    }
+
+    /* Setup panel */
+    #setupPanel {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.45);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 50;
+    }
+
+    #setupCard {
+      background: white;
+      padding: 24px;
+      border-radius: 16px;
+      width: 380px;
+      max-width: 90vw;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+    }
+
+    #setupCard h2 {
+      margin-top: 0;
+      margin-bottom: 8px;
+    }
+
+    #setupCard p {
+      margin-top: 0;
+      color: #444;
+    }
+
+    .playerInput {
+      width: 100%;
+      margin-bottom: 8px;
+      padding: 8px 10px;
+      font-size: 14px;
+      box-sizing: border-box;
+    }
+
+    #startGame {
+      margin-top: 8px;
+      padding: 10px 14px;
+      font-size: 14px;
+      cursor: pointer;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      background: #f8f8f8;
+    }
+
+    /* Final panel */
+    #finalPanel {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.45);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 60;
+    }
+
+    #finalPanel.hidden {
+      display: none;
+    }
+
+    #finalCard {
+      background: white;
+      padding: 24px;
+      border-radius: 16px;
+      width: 400px;
+      max-width: 90vw;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+    }
+
+    #finalCard h2 {
+      margin-top: 0;
+      margin-bottom: 8px;
+    }
+
+    .finalStats {
+      margin: 16px 0;
+      line-height: 1.8;
+    }
+
