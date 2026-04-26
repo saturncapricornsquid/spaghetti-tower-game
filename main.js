@@ -1,3 +1,5 @@
+/* global document, window, Matter */
+
 // DOM
 var modeEl = document.getElementById("mode");
 var rotationEl = document.getElementById("rotation");
@@ -23,10 +25,17 @@ var mode = "spaghetti";
 var rotation = 0;
 var spaghetti = [];
 var marshmallows = [];
+var constraints = [];
 
 var engine, render, runner;
 
 var SNAP_DISTANCE = 25;
+var BREAK_FORCE = 0.02;
+
+// Challenge mode
+var challengeMode = false;
+var finalPlaced = false;
+var timer = null;
 
 // Init
 function initGame() {
@@ -35,8 +44,12 @@ function initGame() {
 
   spaghetti = [];
   marshmallows = [];
+  constraints = [];
+
   mode = "spaghetti";
   rotation = 0;
+  challengeMode = false;
+  finalPlaced = false;
 
   canvas.width = window.innerWidth;
   canvas.height = window.innerHeight;
@@ -73,15 +86,18 @@ function initGame() {
   updateHUD();
 
   Events.on(engine, "afterUpdate", updateScore);
+  Events.on(engine, "afterUpdate", checkBreakage);
 }
 
 // HUD
 function updateHUD() {
-  modeEl.textContent = mode;
+  var text = mode;
+  if (challengeMode) text += " (FINAL)";
+  modeEl.textContent = text;
   rotationEl.textContent = rotation;
 }
 
-// Distance helper
+// Distance
 function distance(a, b) {
   return Math.sqrt(
     (a.x - b.x) * (a.x - b.x) +
@@ -127,11 +143,11 @@ function glueStick(stick) {
             x: point.x - stick.position.x,
             y: point.y - stick.position.y
           },
-          stiffness: 0.95,
-          damping: 0.2,
+          stiffness: 0.9,
           length: 0
         });
 
+        constraints.push(c);
         World.add(engine.world, c);
       }
     }
@@ -141,7 +157,7 @@ function glueStick(stick) {
 // Create spaghetti
 function createSpaghetti(x, y) {
   var stick = Bodies.rectangle(x, y, 140, 6, {
-    isStatic: true,
+    isStatic: !challengeMode,
     render: { fillStyle: "#f4d03f" }
   });
 
@@ -154,10 +170,10 @@ function createSpaghetti(x, y) {
 }
 
 // Create marshmallow
-function createMarshmallow(x, y) {
-  var m = Bodies.circle(x, y, 12, {
-    isStatic: true,
-    render: { fillStyle: "#fffaf5" }
+function createMarshmallow(x, y, isFinal) {
+  var m = Bodies.circle(x, y, isFinal ? 18 : 12, {
+    isStatic: !challengeMode,
+    render: { fillStyle: isFinal ? "#ffffff" : "#fffaf5" }
   });
 
   World.add(engine.world, m);
@@ -166,19 +182,27 @@ function createMarshmallow(x, y) {
   for (var i = 0; i < spaghetti.length; i++) {
     glueStick(spaghetti[i]);
   }
+
+  if (isFinal) startTest();
 }
 
-// Click placement
+// Click
 document.addEventListener("click", function (event) {
   if (event.target.closest("#hud")) return;
 
   var x = event.clientX;
   var y = event.clientY;
 
+  if (challengeMode && !finalPlaced) {
+    finalPlaced = true;
+    createMarshmallow(x, y, true);
+    return;
+  }
+
   if (mode === "spaghetti") {
     createSpaghetti(x, y);
   } else {
-    createMarshmallow(x, y);
+    createMarshmallow(x, y, false);
   }
 });
 
@@ -196,6 +220,59 @@ document.getElementById("rotate").onclick = function () {
 document.getElementById("reset").onclick = function () {
   initGame();
 };
+
+// Challenge trigger (press T)
+document.addEventListener("keydown", function (e) {
+  if (e.key === "t") {
+    challengeMode = true;
+    updateHUD();
+    alert("Click to place FINAL marshmallow");
+  }
+});
+
+// Start test
+function startTest() {
+  engine.world.gravity.y = 1;
+
+  var allBodies = spaghetti.concat(marshmallows);
+  for (var i = 0; i < allBodies.length; i++) {
+    Body.setStatic(allBodies[i], false);
+  }
+
+  var survived = true;
+
+  timer = setTimeout(function () {
+    if (survived) {
+      alert("✅ SUCCESS! Tower held!");
+    }
+  }, 5000);
+
+  Events.on(engine, "afterUpdate", function () {
+    for (var i = 0; i < marshmallows.length; i++) {
+      if (marshmallows[i].position.y > canvas.height - 50) {
+        survived = false;
+        clearTimeout(timer);
+        alert("❌ COLLAPSE!");
+      }
+    }
+  });
+}
+
+// Break spaghetti under stress
+function checkBreakage() {
+  for (var i = constraints.length - 1; i >= 0; i--) {
+    var c = constraints[i];
+
+    var dx = c.bodyA.position.x - c.bodyB.position.x;
+    var dy = c.bodyA.position.y - c.bodyB.position.y;
+    var dist = Math.sqrt(dx * dx + dy * dy);
+
+    if (dist > 80) {
+      World.remove(engine.world, c);
+      constraints.splice(i, 1);
+    }
+  }
+}
 
 // Score
 function updateScore() {
@@ -215,4 +292,4 @@ function updateScore() {
 // Start
 initGame();
 
-console.log("✅ Compatible version running");
+console.log("✅ FULL CHALLENGE MODE ACTIVE");
