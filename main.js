@@ -1,8 +1,10 @@
-// DOM
- modeEl = document.getElementById("mode");const canvas = document.getElementById("game");
+// DOM");
+const rotationEl = document.getElementById("rotation");
 const toggleBtn = document.getElementById("toggle");
 const rotateBtn = document.getElementById("rotate");
 const resetBtn = document.getElementById("reset");
+const statusEl = document.getElementById("status");
+const canvas = document.getElementById("game");
 
 // Matter.js
 const { Engine, Render, Runner, World, Bodies } = Matter;
@@ -46,20 +48,24 @@ Runner.run(runner, engine);
 toggleBtn.addEventListener("click", () => {
   mode = mode === "spaghetti" ? "marshmallow" : "spaghetti";
   modeEl.textContent = mode;
+  statusEl.textContent = `Mode switched to ${mode}`;
   console.log("Mode:", mode);
 });
 
 rotateBtn.addEventListener("click", () => {
   rotation += 15;
+  rotationEl.textContent = rotation;
+  statusEl.textContent = `Rotation is now ${rotation}°`;
   console.log("Rotation:", rotation);
-  alert("Rotate clicked");
 });
 
 resetBtn.addEventListener("click", () => {
   mode = "spaghetti";
   rotation = 0;
   modeEl.textContent = mode;
-  alert("Reset clicked");
+  rotationEl.textContent = rotation;
+  statusEl.textContent = "Reset complete";
+  console.log("Reset");
 });
 
-console.log("✅ main.js loaded and running");
+console.log("✅ main.js loaded successfully");
