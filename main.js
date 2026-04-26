@@ -1,193 +1,8 @@
-const { Engine, Render, Runner, World, Bodies, Body, Events } = Matter;");
-const startGameBtn = document.getElementById("startGame");
+const { Engine, Render, Runner, World, Bodies, Body, Events } = Matter;
 
-const finalPanel = document.getElementById("finalPanel");
-const finalTitle = document.getElementById("finalTitle");
-const finalMessage = document.getElementById("finalMessage");
-const finalScore = document.getElementById("finalScore");
-const finalUsed = document.getElementById("finalUsed");
-const finalBuilder = document.getElementById("finalBuilder");
-const playAgainBtn = document.getElementById("playAgain");
-
-/* Constants */
-const GROUND_HEIGHT = 80;
-const ROT_STEP = Math.PI / 12;
-
-/* Game state */
-let engine, render, runner;
-let spaghetti = [];
-let marshmallow = null;
-
-let players = [];
-let currentPlayer = 0;
-let lastBuilder = "";
-
-let spaghettiLeft = 20;
-let score = 0;
-let timeLeft = 30;
-let rotation = 0;
-let gameEnded = false;
-
-/* Setup */
-startGameBtn.onclick = () => {
-  const inputs = document.querySelectorAll(".playerInput");
-  players = [...inputs].map(i => i.value.trim()).filter(v => v);
-
-  if (players.length < 2) {
-    alert("Please enter at least 2 player names");
-    return;
-  }
-
-  setupPanel.style.display = "none";
-  initGame();
-};
-
-playAgainBtn.onclick = () => {
-  finalPanel.classList.add("hidden");
-  setupPanel.style.display = "flex";
-};
-
-/* Init */
-function initGame() {
-  spaghetti = [];
-  marshmallow = null;
-  spaghettiLeft = 20;
-  score = 0;
-  timeLeft = 30;
-  rotation = 0;
-  currentPlayer = 0;
-  lastBuilder = players[0];
-  gameEnded = false;
-
-  updateHud();
-
-  engine = Engine.create();
-  engine.world.gravity.y = 1;
-
-  canvas.width = window.innerWidth;
-  canvas.height = window.innerHeight;
-
-  render = Render.create({
-    canvas,
-    engine,
-    options: {
-      width: canvas.width,
-      height: canvas.height,
-      wireframes: false,
-      background: "#f4f4f4"
-    }
-  });
-
-  runner = Runner.create();
-  Render.run(render);
-  Runner.run(runner, engine);
-
-  const ground = Bodies.rectangle(
-    canvas.width / 2,
-    canvas.height - GROUND_HEIGHT / 2,
-    canvas.width,
-    GROUND_HEIGHT,
-    { isStatic: true }
-  );
-
-  World.add(engine.world, ground);
-
-  startTimer();
-}
-
-/* Placement */
-canvas.onclick = e => {
-  if (gameEnded) return;
-
-  const x = e.clientX;
-  const y = e.clientY;
-
-  if (timeLeft > 0 && spaghettiLeft > 0) {
-    placeSpaghetti(x, y);
-  } else if (!marshmallow) {
-    placeMarshmallow(x, y);
-  }
-};
-
-function placeSpaghetti(x, y) {
-  const stick = Bodies.rectangle(x, y, 140, 6);
-  Body.setAngle(stick, rotation);
-  spaghetti.push(stick);
-  World.add(engine.world, stick);
-
-  spaghettiLeft--;
-  lastBuilder = players[currentPlayer];
-  currentPlayer = (currentPlayer + 1) % players.length;
-
-  updateScore();
-  updateHud();
-}
-
-function placeMarshmallow(x, y) {
-  marshmallow = Bodies.circle(x, y, 22, { density: 0.01 });
-  World.add(engine.world, marshmallow);
-
-  statusEl.innerText = "Marshmallow placed – hold for 10 seconds!";
-  setTimeout(() => endGame(true), 10000);
-}
-
-/* Controls */
-rotateLeftBtn.onclick = () => rotation -= ROT_STEP;
-rotateRightBtn.onclick = () => rotation += ROT_STEP;
-
-document.addEventListener("keydown", e => {
-  if (e.key.toLowerCase() === "r") rotation += ROT_STEP;
-});
-
-addBtn.onclick = () => placeSpaghetti(canvas.width / 2, 120);
-resetBtn.onclick = () => location.reload();
-
-/* Timer */
-function startTimer() {
-  const interval = setInterval(() => {
-    if (gameEnded) return;
-
-    timeLeft--;
-    updateHud();
-
-    if (timeLeft <= 0) {
-      clearInterval(interval);
-      statusEl.innerText = "Place the marshmallow!";
-    }
-  }, 1000);
-}
-
-/* Score */
-function updateScore() {
-  let top = Infinity;
-  spaghetti.forEach(s => top = Math.min(top, s.bounds.min.y));
-  score = Math.max(0, Math.round(canvas.height - GROUND_HEIGHT - top));
-}
-
-/* HUD */
-function updateHud() {
-  timeEl.innerText = `00:${String(timeLeft).padStart(2, "0")}`;
-  countEl.innerText = spaghettiLeft;
-  scoreEl.innerText = score;
-  rotationEl.innerText = `${Math.round(rotation * 180 / Math.PI) % 360}°`;
-  currentPlayerEl.innerText = players[currentPlayer];
-  statusEl.innerText = `${players[currentPlayer]}'s turn`;
-}
-
-/* End */
-function endGame(success) {
-  gameEnded = true;
-
-  finalTitle.innerText = success ? "✅ Success!" : "❌ Failed";
-  finalMessage.innerText = "Round complete";
-  finalScore.innerText = score;
-  finalUsed.innerText = 20 - spaghettiLeft;
-  finalBuilder.innerText = lastBuilder;
-
-  finalPanel.classList.remove("hidden");
-}
-
-/* DOM */
+/* =========================
+   DOM references
+========================= */
 const canvas = document.getElementById("game");
 const timeEl = document.getElementById("time");
 const countEl = document.getElementById("count");
@@ -201,3 +16,542 @@ const rotateRightBtn = document.getElementById("rotateRight");
 const addBtn = document.getElementById("add");
 const resetBtn = document.getElementById("reset");
 
+const setupPanel = document.getElementById("setupPanel");
+const startGameBtn = document.getElementById("startGame");
+const playerInputs = Array.from(document.querySelectorAll(".playerInput"));
+
+const finalPanel = document.getElementById("finalPanel");
+const finalTitle = document.getElementById("finalTitle");
+const finalMessage = document.getElementById("finalMessage");
+const finalScore = document.getElementById("finalScore");
+const finalHeight = document.getElementById("finalHeight");
+const finalUsed = document.getElementById("finalUsed");
+const finalMarshmallow = document.getElementById("finalMarshmallow");
+const finalBuilder = document.getElementById("finalBuilder");
+const playAgainBtn = document.getElementById("playAgain");
+const changeTeamBtn = document.getElementById("changeTeam");
+
+/* =========================
+   Constants
+========================= */
+const GROUND_HEIGHT = 80;
+const ROT_STEP = Math.PI / 12; // 15 degrees
+const SPAGHETTI_LENGTH = 140;
+const SPAGHETTI_THICKNESS = 6;
+const HUD_SAFE_WIDTH = 450;
+const HUD_SAFE_HEIGHT = 320;
+
+/* =========================
+   Game state
+========================= */
+let engine = null;
+let render = null;
+let runner = null;
+let ground = null;
+let spaghettiBodies = [];
+let marshmallowBody = null;
+
+let players = [];
+let currentPlayerIndex = 0;
+let lastBuilder = "";
+
+let spaghettiLeft = 20;
+let score = 0;
+let timeLeft = 30; // change to 18 * 60 later
+let rotation = 0;
+let gameEnded = false;
+let marshmallowPlaced = false;
+
+let countdownInterval = null;
+let stabilityInterval = null;
+let previewX = window.innerWidth / 2;
+let previewY = window.innerHeight / 2;
+
+let keyboardHandlerAttached = false;
+
+/* =========================
+   Setup / start
+========================= */
+startGameBtn.onclick = () => {
+  const enteredNames = playerInputs
+    .map(input => input.value.trim())
+    .filter(name => name.length > 0);
+
+  if (enteredNames.length < 2) {
+    alert("Please enter at least 2 player names.");
+    return;
+  }
+
+  players = enteredNames;
+  setupPanel.style.display = "none";
+  initGame();
+};
+
+playAgainBtn.onclick = () => {
+  hideFinalPanel();
+  initGame();
+};
+
+changeTeamBtn.onclick = () => {
+  hideFinalPanel();
+  setupPanel.style.display = "flex";
+};
+
+/* =========================
+   Initialisation
+========================= */
+function initGame() {
+  stopTimers();
+  stopMatter();
+
+  spaghettiBodies = [];
+  marshmallowBody = null;
+
+  spaghettiLeft = 20;
+  score = 0;
+  timeLeft = 30; // change later if needed
+  rotation = 0;
+  gameEnded = false;
+  marshmallowPlaced = false;
+
+  currentPlayerIndex = 0;
+  lastBuilder = players[0] || "—";
+
+  previewX = window.innerWidth / 2;
+  previewY = window.innerHeight / 2;
+
+  hideFinalPanel();
+
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+
+  engine = Engine.create();
+  engine.world.gravity.y = 1;
+
+  render = Render.create({
+    canvas,
+    engine,
+    options: {
+      width: canvas.width,
+      height: canvas.height,
+      wireframes: false,
+      background: "#f4f4f4"
+    }
+  });
+
+  runner = Runner.create();
+
+  createWorld();
+  attachCanvasHandlers();
+  attachUIHandlers();
+  attachEngineHandlers();
+  attachPreviewRenderer();
+  attachKeyboardHandlerOnce();
+
+  Render.run(render);
+  Runner.run(runner, engine);
+
+  updateHud();
+  statusEl.innerText =
+    `${players[currentPlayerIndex]}'s turn. Move the mouse, rotate if needed, then click to place spaghetti.`;
+
+  startTimer();
+}
+
+/* =========================
+   Matter world
+========================= */
+function createWorld() {
+  ground = Bodies.rectangle(
+    canvas.width / 2,
+    canvas.height - GROUND_HEIGHT / 2,
+    canvas.width,
+    GROUND_HEIGHT,
+    {
+      isStatic: true,
+      label: "ground",
+      render: { fillStyle: "#666" }
+    }
+  );
+
+  const leftWall = Bodies.rectangle(
+    -25,
+    canvas.height / 2,
+    50,
+    canvas.height,
+    { isStatic: true, render: { visible: false } }
+  );
+
+  const rightWall = Bodies.rectangle(
+    canvas.width + 25,
+    canvas.height / 2,
+    50,
+    canvas.height,
+    { isStatic: true, render: { visible: false } }
+  );
+
+  World.add(engine.world, [ground, leftWall, rightWall]);
+}
+
+function stopMatter() {
+  if (runner) {
+    Runner.stop(runner);
+    runner = null;
+  }
+  if (render) {
+    Render.stop(render);
+    render = null;
+  }
+  engine = null;
+}
+
+/* =========================
+   Factories
+========================= */
+function createSpaghetti(x, y, angle = 0) {
+  const stick = Bodies.rectangle(
+    x,
+    y,
+    SPAGHETTI_LENGTH,
+    SPAGHETTI_THICKNESS,
+    {
+      label: "spaghetti",
+      density: 0.0004,
+      friction: 0.4,
+      restitution: 0.1,
+      render: { fillStyle: "#f4d03f" }
+    }
+  );
+
+  Body.setAngle(stick, angle);
+  return stick;
+}
+
+function createMarshmallow(x, y) {
+  return Bodies.circle(x, y, 22, {
+    label: "marshmallow",
+    density: 0.01,
+    friction: 0.6,
+    restitution: 0.05,
+    render: { fillStyle: "#ffffff" }
+  });
+}
+
+/* =========================
+   Turn-taking
+========================= */
+function updateCurrentPlayer() {
+  currentPlayerEl.innerText = players[currentPlayerIndex] || "—";
+}
+
+function advanceTurn() {
+  lastBuilder = players[currentPlayerIndex] || "—";
+  currentPlayerIndex = (currentPlayerIndex + 1) % players.length;
+  updateCurrentPlayer();
+}
+
+/* =========================
+   Placement helpers
+========================= */
+function placeSpaghetti(x, y, angle = rotation) {
+  if (gameEnded) return;
+
+  if (timeLeft <= 0) {
+    statusEl.innerText = "Building time is over. Place the marshmallow now.";
+    return;
+  }
+
+  if (spaghettiLeft <= 0) {
+    statusEl.innerText = "No spaghetti left. Wait for the marshmallow phase.";
+    return;
+  }
+
+  const builderName = players[currentPlayerIndex];
+
+  const stick = createSpaghetti(x, y, angle);
+  spaghettiBodies.push(stick);
+  World.add(engine.world, stick);
+
+  spaghettiLeft--;
+  updateScore();
+  updateHud();
+
+  statusEl.innerText = `${builderName} placed spaghetti.`;
+
+  advanceTurn();
+
+  if (spaghettiLeft === 0) {
+    statusEl.innerText += " No spaghetti left — wait for marshmallow phase.";
+  }
+}
+
+function placeMarshmallow(x, y) {
+  if (gameEnded) return;
+  if (marshmallowPlaced) return;
+
+  if (timeLeft > 0) {
+    statusEl.innerText = "You can only place the marshmallow when the timer reaches 0.";
+    return;
+  }
+
+  const builderName = players[currentPlayerIndex];
+
+  marshmallowBody = createMarshmallow(x, y);
+  marshmallowPlaced = true;
+  World.add(engine.world, marshmallowBody);
+
+  statusEl.innerText = `${builderName} placed the marshmallow. Tower must stand for 10 seconds...`;
+
+  advanceTurn();
+  startStabilityCheck();
+}
+
+/* =========================
+   Rotation
+========================= */
+function rotateNextPiece(delta) {
+  if (gameEnded) return;
+  if (timeLeft <= 0) return;
+
+  rotation += delta;
+  updateHud();
+
+  const degrees = normalisedDegrees(rotation);
+  statusEl.innerText = `Rotation set to ${degrees}°. ${players[currentPlayerIndex]}'s turn.`;
+}
+
+function normalisedDegrees(angleRadians) {
+  return ((Math.round((angleRadians * 180) / Math.PI) % 360) + 360) % 360;
+}
+
+/* =========================
+   Input handlers
+========================= */
+function attachCanvasHandlers() {
+  canvas.onmousemove = (event) => {
+    const rect = canvas.getBoundingClientRect();
+    previewX = event.clientX - rect.left;
+    previewY = event.clientY - rect.top;
+  };
+
+  canvas.onclick = (event) => {
+    if (gameEnded) return;
+
+    const rect = canvas.getBoundingClientRect();
+    const x = event.clientX - rect.left;
+    const y = event.clientY - rect.top;
+
+    /* Ignore clicks inside the HUD block */
+    if (x < HUD_SAFE_WIDTH && y < HUD_SAFE_HEIGHT) return;
+
+    if (timeLeft > 0) {
+      placeSpaghetti(x, y, rotation);
+    } else if (!marshmallowPlaced) {
+      placeMarshmallow(x, y);
+    }
+  };
+}
+
+function attachUIHandlers() {
+  rotateLeftBtn.onclick = () => rotateNextPiece(-ROT_STEP);
+  rotateRightBtn.onclick = () => rotateNextPiece(ROT_STEP);
+
+  addBtn.onclick = () => {
+    if (gameEnded) return;
+
+    if (timeLeft > 0) {
+      placeSpaghetti(canvas.width / 2, 120, rotation);
+    } else if (!marshmallowPlaced) {
+      placeMarshmallow(canvas.width / 2, 90);
+    }
+  };
+
+  resetBtn.onclick = () => {
+    initGame();
+  };
+}
+
+function attachKeyboardHandlerOnce() {
+  if (keyboardHandlerAttached) return;
+  keyboardHandlerAttached = true;
+
+  document.addEventListener("keydown", (event) => {
+    if (event.key.toLowerCase() === "r") {
+      rotateNextPiece(ROT_STEP);
+    }
+
+    if (event.key === "ArrowLeft") {
+      rotateNextPiece(-ROT_STEP);
+    }
+
+    if (event.key === "ArrowRight") {
+      rotateNextPiece(ROT_STEP);
+    }
+  });
+}
+
+/* =========================
+   Matter event handlers
+========================= */
+function attachEngineHandlers() {
+  Events.on(engine, "afterUpdate", () => {
+    if (gameEnded) return;
+    if (!marshmallowPlaced) return;
+
+    updateScore();
+
+    if (hasTowerFailed()) {
+      endGame(false);
+    }
+  });
+}
+
+function attachPreviewRenderer() {
+  Events.on(render, "afterRender", () => {
+    if (gameEnded) return;
+    if (timeLeft <= 0) return;
+    if (spaghettiLeft <= 0) return;
+
+    if (previewX < HUD_SAFE_WIDTH && previewY < HUD_SAFE_HEIGHT) return;
+
+    const ctx = render.context;
+
+    ctx.save();
+    ctx.translate(previewX, previewY);
+    ctx.rotate(rotation);
+    ctx.globalAlpha = 0.45;
+    ctx.fillStyle = "#d4ac0d";
+    ctx.fillRect(
+      -SPAGHETTI_LENGTH / 2,
+      -SPAGHETTI_THICKNESS / 2,
+      SPAGHETTI_LENGTH,
+      SPAGHETTI_THICKNESS
+    );
+    ctx.restore();
+  });
+}
+
+/* =========================
+   Timer / round flow
+========================= */
+function startTimer() {
+  countdownInterval = setInterval(() => {
+    if (gameEnded) return;
+
+    timeLeft--;
+    updateHud();
+
+    if (timeLeft <= 0) {
+      clearInterval(countdownInterval);
+      countdownInterval = null;
+      statusEl.innerText = `${players[currentPlayerIndex]}'s turn to place the marshmallow.`;
+    }
+  }, 1000);
+}
+
+function startStabilityCheck() {
+  let secondsRemaining = 10;
+
+  stabilityInterval = setInterval(() => {
+    if (gameEnded) return;
+
+    secondsRemaining--;
+    updateScore();
+    updateHud();
+
+    if (secondsRemaining > 0) {
+      statusEl.innerText = `Tower must stand for ${secondsRemaining} seconds...`;
+    } else {
+      clearInterval(stabilityInterval);
+      stabilityInterval = null;
+      endGame(true);
+    }
+  }, 1000);
+}
+
+function stopTimers() {
+  if (countdownInterval) {
+    clearInterval(countdownInterval);
+    countdownInterval = null;
+  }
+
+  if (stabilityInterval) {
+    clearInterval(stabilityInterval);
+    stabilityInterval = null;
+  }
+}
+
+/* =========================
+   Score / HUD
+========================= */
+function updateScore() {
+  if (spaghettiBodies.length === 0) {
+    score = 0;
+    return;
+  }
+
+  let topY = Infinity;
+
+  for (const body of spaghettiBodies) {
+    if (body && body.bounds && body.bounds.min.y < topY) {
+      topY = body.bounds.min.y;
+    }
+  }
+
+  score = Math.max(0, Math.round(canvas.height - GROUND_HEIGHT - topY));
+}
+
+function updateHud() {
+  const mins = Math.floor(timeLeft / 60);
+  const secs = String(Math.max(0, timeLeft % 60)).padStart(2, "0");
+  timeEl.innerText = `${String(mins).padStart(2, "0")}:${secs}`;
+  countEl.innerText = String(spaghettiLeft);
+  scoreEl.innerText = String(score);
+  rotationEl.innerText = `${normalisedDegrees(rotation)}°`;
+  updateCurrentPlayer();
+}
+
+/* =========================
+   Fail / success
+========================= */
+function hasTowerFailed() {
+  if (!marshmallowBody) return false;
+
+  const floorLine = canvas.height - GROUND_HEIGHT - 5;
+  return marshmallowBody.position.y >= floorLine;
+}
+
+function endGame(success) {
+  if (gameEnded) return;
+
+  gameEnded = true;
+  stopTimers();
+  updateScore();
+  updateHud();
+
+  finalTitle.innerText = success ? "✅ Success!" : "❌ Failed";
+  finalMessage.innerText = success
+    ? "The tower held the marshmallow for 10 seconds."
+    : "The tower did not survive the marshmallow test.";
+
+  finalScore.innerText = String(score);
+  finalHeight.innerText = String(score);
+  finalUsed.innerText = String(20 - spaghettiLeft);
+  finalMarshmallow.innerText = marshmallowPlaced ? "Yes" : "No";
+  finalBuilder.innerText = lastBuilder;
+
+  finalPanel.classList.remove("hidden");
+}
+
+function hideFinalPanel() {
+  finalPanel.classList.add("hidden");
+}
+
+/* =========================
+   Resize
+========================= */
+window.addEventListener("resize", () => {
+  if (players.length > 0 && setupPanel.style.display === "none") {
+    initGame();
+  }
+});
