@@ -83,3 +83,36 @@
   <div id="hud">
     <div>⏱️ Time: <span id="time">00:30</span></div>
     <div>🍝 Spaghetti left: <span id="count">20</span></div>
+    <div>🤍 Marshmallows left: <span id="marshmallowCount">10</span></div>
+    <div>🏆 Score: <span id="score">0</span></div>
+    <div>📐 Rotation: <span id="rotation">0°</span></div>
+    <div>🧱 Build mode: <span id="buildModeLabel">Spaghetti</span></div>
+
+    <div id="status">
+      Click anywhere outside this panel to place material. Press <strong>M</strong> to switch material. Press <strong>R</strong> to rotate spaghetti.
+    </div>
+
+    <button id="rotateLeft">Rotate -15°</button>
+    <button id="rotateRight">Rotate +15°</button>
+    <button id="toggleMaterial">Switch to marshmallow</button>
+    <button id="add">Add material (centre)</button>
+    <button id="reset">Reset round</button>
+  </div>
+
+  <canvas id="game"></canvas>
+
+  <div id="finalPanel" class="hidden">
+    <div id="finalCard">
+      <h2 id="finalTitle">Round complete</h2>
+      <p id="finalMessage"></p>
+      <p><strong>Final score:</strong> <span id="finalScore">0</span></p>
+      <p><strong>Spaghetti used:</strong> <span id="finalUsed">0</span></p>
+      <p><strong>Connector marshmallows used:</strong> <span id="finalConnectorUsed">0</span></p>
+      <p><strong>Final marshmallow placed:</strong> <span id="finalMarshmallow">No</span></p>
+      <button id="playAgain">Play again</button>
+    </div>
+  </div>
+
+  <script src="main.js"></script>
+</body>
+</html>
