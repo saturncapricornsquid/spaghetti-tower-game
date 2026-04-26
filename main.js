@@ -1,4 +1,12 @@
-const { Engine, Render, Runner, World, Bodies, Body, Events, Constraint } = Matter;const {shmallowCount");
+const { Engine, Render, Runner, World, Bodies, Body, Events, Constraint } = Matter;
+
+/* DOM */
+const canvas = document.getElementById("game");
+const hud = document.getElementById("hud");
+
+const timeEl = document.getElementById("time");
+const countEl = document.getElementById("count");
+const marshmallowCountEl = document.getElementById("marshmallowCount");
 const scoreEl = document.getElementById("score");
 const rotationEl = document.getElementById("rotation");
 const buildModeLabelEl = document.getElementById("buildModeLabel");
@@ -271,7 +279,7 @@ function placeFinalMarshmallow(x, y) {
   startStabilityCheck();
 }
 
-/* Input */
+/* Handlers */
 function attachHandlers() {
   canvas.onmousemove = (event) => {
     const rect = canvas.getBoundingClientRect();
@@ -281,10 +289,6 @@ function attachHandlers() {
 
   canvas.onclick = (event) => {
     if (gameEnded) return;
-
-    const canvasRect = canvas.getBoundingClientRect();
-    const x = event.clientX - canvasRect.left;
-    const y = event.clientY - canvasRect.top;
 
     const hudRect = hud.getBoundingClientRect();
     const clickedInsideHud =
@@ -298,6 +302,10 @@ function attachHandlers() {
       return;
     }
 
+    const rect = canvas.getBoundingClientRect();
+    const x = event.clientX - rect.left;
+    const y = event.clientY - rect.top;
+
     if (timeLeft > 0) {
       if (buildMode === "spaghetti") {
         placeSpaghetti(x, y);
@@ -309,28 +317,43 @@ function attachHandlers() {
     }
   };
 
-  rotateLeftBtn.onclick = () => {
+  rotateLeftBtn.addEventListener("click", (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+
     if (buildMode === "spaghetti" && timeLeft > 0) {
       rotation -= ROT_STEP;
       updateHud();
+      statusEl.innerText = "Rotated -15°.";
     }
-  };
+  });
 
-  rotateRightBtn.onclick = () => {
+  rotateRightBtn.addEventListener("click", (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+
     if (buildMode === "spaghetti" && timeLeft > 0) {
       rotation += ROT_STEP;
       updateHud();
+      statusEl.innerText = "Rotated +15°.";
     }
-  };
+  });
 
-  toggleMaterialBtn.onclick = () => {
+  toggleMaterialBtn.addEventListener("click", (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+
     if (timeLeft <= 0) return;
+
     buildMode = buildMode === "spaghetti" ? "connector" : "spaghetti";
     updateHud();
     statusEl.innerText = `Build mode switched to ${buildMode === "spaghetti" ? "spaghetti" : "connector marshmallow"}.`;
-  };
+  });
 
-  addBtn.onclick = () => {
+  addBtn.addEventListener("click", (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+
     if (timeLeft > 0) {
       if (buildMode === "spaghetti") {
         placeSpaghetti(canvas.width / 2, 120);
@@ -340,15 +363,19 @@ function attachHandlers() {
     } else {
       placeFinalMarshmallow(canvas.width / 2, 90);
     }
-  };
+  });
 
-  resetBtn.onclick = () => {
+  resetBtn.addEventListener("click", (event) => {
+    event.preventDefault();
+    event.stopPropagation();
     initGame();
-  };
+  });
 
-  playAgainBtn.onclick = () => {
+  playAgainBtn.addEventListener("click", (event) => {
+    event.preventDefault();
+    event.stopPropagation();
     initGame();
-  };
+  });
 
   if (!keyboardAttached) {
     keyboardAttached = true;
@@ -368,9 +395,6 @@ function attachHandlers() {
     if (gameEnded) return;
     if (timeLeft <= 0) return;
 
-    const ctx = render.context;
-
-    // Don’t draw preview inside HUD
     const hudRect = hud.getBoundingClientRect();
     const canvasRect = canvas.getBoundingClientRect();
     const insideHud =
@@ -381,6 +405,7 @@ function attachHandlers() {
 
     if (insideHud) return;
 
+    const ctx = render.context;
     ctx.save();
     ctx.translate(previewX, previewY);
     ctx.globalAlpha = 0.45;
@@ -514,10 +539,3 @@ function hideFinalPanel() {
 
 /* Start */
 initGame();
-
-/* DOM */
-const canvas = document.getElementById("game");
-const hud = document.getElementById("hud");
-
-const timeEl = document.getElementById("time");
-const countEl = document.getElementById("count");
