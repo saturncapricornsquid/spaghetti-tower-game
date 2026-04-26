@@ -1,4 +1,5 @@
-// DOM");
+// DOM
+const modeEl = document.getElementById("mode");
 const rotationEl = document.getElementById("rotation");
 const toggleBtn = document.getElementById("toggle");
 const rotateBtn = document.getElementById("rotate");
@@ -69,3 +70,4 @@ resetBtn.addEventListener("click", () => {
 });
 
 console.log("✅ main.js loaded successfully");
+``
