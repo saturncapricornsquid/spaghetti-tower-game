@@ -1,54 +1,70 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title>Spaghetti Tower</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+// DOM
+const modeEl = document.getElementById("mode");
+const rotationEl = document.getElementById("rotation");
+const toggleBtn = document.getElementById("toggle");
+const rotateBtn = document.getElementById("rotate");
+const resetBtn = document.getElementById("reset");
+const canvas = document.getElementById("game");
 
-  <!-- Matter.js -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.20.0/matter.min.js"></script>
+// Matter.js
+const { Engine, Render, Runner, World, Bodies } = Matter;
 
-  <style>
-    body {
-      margin: 0;
-      font-family: Arial, sans-serif;
-      background: #f4f4f4;
-    }
+// State
+let mode = "spaghetti";
+let rotation = 0;
 
-    #hud {
-      position: fixed;
-      top: 10px;
-      left: 10px;
-      background: white;
-      padding: 12px;
-      border-radius: 8px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-      z-index: 10;
-    }
+// Engine
+const engine = Engine.create();
+engine.world.gravity.y = 0;
 
-    button {
-      display: block;
-      margin: 6px 0;
-      padding: 6px 10px;
-      cursor: pointer;
-    }
-  </style>
-</head>
-<body>
+const render = Render.create({
+  canvas,
+  engine,
+  options: {
+    width: window.innerWidth,
+    height: window.innerHeight,
+    wireframes: false,
+    background: "#f4f4f4"
+  }
+});
 
-  <div id="hud">
-    <div>Mode: <strong id="mode">spaghetti</strong></div>
-    <div>Rotation: <strong id="rotation">0</strong>°</div>
+const runner = Runner.create();
 
-    <button id="toggle">Switch material</button>
-    <button id="rotate">Rotate</button>
-    <button id="reset">Reset</button>
-  </div>
+// Ground
+const ground = Bodies.rectangle(
+  window.innerWidth / 2,
+  window.innerHeight - 40,
+  window.innerWidth,
+  80,
+  { isStatic: true }
+);
 
-  <canvas id="game"></canvas>
+World.add(engine.world, ground);
 
-  <!-- Your JS -->
-  <script src="main.js"></script>
-</body>
-</html>
+Render.run(render);
+Runner.run(runner, engine);
+
+// Buttons
+toggleBtn.addEventListener("click", () => {
+  mode = mode === "spaghetti" ? "marshmallow" : "spaghetti";
+  modeEl.textContent = mode;
+  console.log("Mode:", mode);
+});
+
+rotateBtn.addEventListener("click", () => {
+  rotation += 15;
+  rotationEl.textContent = rotation;
+  console.log("Rotation:", rotation);
+  alert("Rotate clicked");
+});
+
+resetBtn.addEventListener("click", () => {
+  mode = "spaghetti";
+  rotation = 0;
+  modeEl.textContent = mode;
+  rotationEl.textContent = rotation;
+  alert("Reset clicked");
+});
+
+console.log("✅ main.js loaded and running");
 ``
