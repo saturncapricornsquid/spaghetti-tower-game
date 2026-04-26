@@ -1,11 +1,11 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>Spaghetti Tower Challenge</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-  <!-- ✅ REAL SCRIPT TAG -->
+  <!-- Matter.js physics engine -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.20.0/matter.min.js"></script>
 
   <style>
@@ -13,20 +13,28 @@
       margin: 0;
       font-family: Arial, sans-serif;
       background: #f4f4f4;
+      overflow: hidden;
     }
-  </style>
-</head>
-<body>
 
-  <h1 id="test">✅ HTML LOADED</h1>
+    canvas {
+      display: block;
+    }
 
-  <script>
-    document.getElementById("test").innerText = "✅ JAVASCRIPT RUNNING";
-    console.log("JS is running");
-  </script>
+    /* HUD */
+    #hud {
+      position: fixed;
+      top: 10px;
+      left: 10px;
+      width: 360px;
+      background: white;
+      padding: 14px 16px;
+      border-radius: 10px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
+      z-index: 10;
+      line-height: 1.6;
+    }
 
-  <!-- ✅ REAL SCRIPT TAG -->
-  <script src="main.js"></script>
-
-</body>
-</html>
+    #hud button {
+      margin-top: 8px;
+      margin-right: 6px;
+      padding: 8px 12px;
