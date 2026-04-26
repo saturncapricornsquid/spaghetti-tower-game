@@ -1,86 +1,75 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <title>Spaghetti Tower Challenge</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<style>
+  body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background: #f4f4f4;
+    overflow: hidden;
+  }
 
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.20.0/matter.min.js"></script>
+  /* IMPORTANT: canvas no longer captures clicks */
+  canvas {
+    position: fixed;
+    inset: 0;
+    display: block;
+    z-index: 0;
+    pointer-events: none;
+  }
 
-  <style>
-    body {
-      margin: 0;
-      font-family: Arial, sans-serif;
-      background: #f4f4f4;
-      overflow: hidden;
-    }
+  #hud {
+    position: fixed;
+    top: 10px;
+    left: 10px;
+    width: 430px;
+    background: white;
+    padding: 14px 16px;
+    border-radius: 10px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
+    z-index: 1000;
+    line-height: 1.6;
+  }
 
-    canvas {
-      position: fixed;
-      inset: 0;
-      display: block;
-      z-index: 0;
-    }
+  #hud button {
+    margin-top: 8px;
+    margin-right: 6px;
+    padding: 8px 12px;
+    font-size: 14px;
+    cursor: pointer;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    background: #f8f8f8;
+  }
 
-    #hud {
-      position: fixed;
-      top: 10px;
-      left: 10px;
-      width: 430px;
-      background: white;
-      padding: 14px 16px;
-      border-radius: 10px;
-      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
-      z-index: 1000;
-      line-height: 1.6;
-    }
+  #hud button:hover {
+    background: #eeeeee;
+  }
 
-    #hud button {
-      margin-top: 8px;
-      margin-right: 6px;
-      padding: 8px 12px;
-      font-size: 14px;
-      cursor: pointer;
-      border: 1px solid #ccc;
-      border-radius: 6px;
-      background: #f8f8f8;
-    }
+  #status {
+    margin-top: 8px;
+    font-size: 13px;
+    min-height: 48px;
+    color: #333;
+  }
 
-    #hud button:hover {
-      background: #eeeeee;
-    }
+  #finalPanel {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.45);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+  }
 
-    #status {
-      margin-top: 8px;
-      font-size: 13px;
-      min-height: 48px;
-      color: #333;
-    }
-  </style>
-</head>
-<body>
+  #finalPanel.hidden {
+    display: none;
+  }
 
-  <div id="hud">
-    <div>⏱️ Time: <span id="time">00:30</span></div>
-    <div>🍝 Spaghetti left: <span id="count">20</span></div>
-    <div>🤍 Marshmallows left: <span id="marshmallowCount">10</span></div>
-    <div>🏆 Score: <span id="score">0</span></div>
-    <div>📐 Rotation: <span id="rotation">0°</span></div>
-    <div>🧱 Build mode: <span id="buildModeLabel">Spaghetti</span></div>
-
-    <div id="status">
-      Click outside this panel to place material. Press <strong>M</strong> to switch material. Press <strong>R</strong> to rotate spaghetti.
-    </div>
-
-    <button id="rotateLeft">Rotate -15°</button>
-    <button id="rotateRight">Rotate +15°</button>
-    <button id="toggleMaterial">Switch to marshmallow</button>
-    <button id="add">Add material (centre)</button>
-    <button id="reset">Reset round</button>
-  </div>
-
-  <canvas id="game"></canvas>
-
-  <script src="main.js"></script>
-</body>
-</html>
+  #finalCard {
+    background: white;
+    padding: 24px;
+    border-radius: 16px;
+    width: 380px;
+    max-width: 90vw;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+  }
+</style>
