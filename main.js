@@ -1,10 +1,25 @@
 // ==============================
 // MATTER SETUP
-, ground);// ==============================
+// =============================Left = GAME_DURATION;// ==============================
+let gameEnded = false;
+let timerInterval = null;
 
 
 // ==============================
-// MOUSE CONTROL (DRAG)
+// GROUND
+// ==============================
+const ground = Bodies.rectangle(
+    window.innerWidth / 2,
+    window.innerHeight - 20,
+    window.innerWidth,
+    40,
+    { isStatic: true }
+);
+World.add(world, ground);
+
+
+// ==============================
+// MOUSE CONTROL
 // ==============================
 const mouse = Mouse.create(render.canvas);
 
@@ -18,18 +33,12 @@ const mouseConstraint = MouseConstraint.create(engine, {
 
 World.add(world, mouseConstraint);
 
-// Track selected object
-Matter.Events.on(mouseConstraint, "startdrag", (event) => {
-    selectedBody = event.body;
-});
-
-Matter.Events.on(mouseConstraint, "enddrag", () => {
-    selectedBody = null;
-});
+Matter.Events.on(mouseConstraint, "startdrag", e => selectedBody = e.body);
+Matter.Events.on(mouseConstraint, "enddrag", () => selectedBody = null);
 
 
 // ==============================
-// ADD SPAGHETTI
+// ADD OBJECTS
 // ==============================
 function addSpaghetti(x, y) {
     const stick = Bodies.rectangle(x, y, 60, 5, {
@@ -42,10 +51,6 @@ function addSpaghetti(x, y) {
     World.add(world, stick);
 }
 
-
-// ==============================
-// ADD GLUE (CONSTRAINT)
-// ==============================
 function addGlue(bodyA, bodyB) {
     if (!bodyA || !bodyB || bodyA === bodyB) return;
 
@@ -54,10 +59,7 @@ function addGlue(bodyA, bodyB) {
         bodyB,
         stiffness: 0.9,
         length: 0,
-        render: {
-            strokeStyle: "yellow",
-            lineWidth: 3
-        }
+        render: { strokeStyle: "yellow", lineWidth: 3 }
     });
 
     glue.push(joint);
@@ -66,17 +68,16 @@ function addGlue(bodyA, bodyB) {
 
 
 // ==============================
-// CLICK INTERACTION
+// INTERACTION
 // ==============================
 canvas.addEventListener("mousedown", () => {
     if (gameEnded) return;
 
     const mousePos = mouse.position;
-
     const bodies = Matter.Composite.allBodies(world);
 
-    const clicked = bodies.find(body =>
-        Matter.Bounds.contains(body.bounds, mousePos)
+    const clicked = bodies.find(b =>
+        Matter.Bounds.contains(b.bounds, mousePos)
     );
 
     if (!clicked) {
@@ -94,13 +95,11 @@ canvas.addEventListener("mousedown", () => {
 
 
 // ==============================
-// DELETE (SPAGHETTI + GLUE)
+// DELETE
 // ==============================
 window.addEventListener("keydown", (e) => {
-    if (e.key === "Delete" || e.key === "Backspace") {
-        if (!selectedBody) return;
+    if ((e.key === "Delete" || e.key === "Backspace") && selectedBody) {
 
-        // Remove spaghetti
         spaghetti = spaghetti.filter(s => {
             if (s === selectedBody) {
                 World.remove(world, s);
@@ -109,7 +108,6 @@ window.addEventListener("keydown", (e) => {
             return true;
         });
 
-        // Remove glue attached
         glue = glue.filter(g => {
             if (g.bodyA === selectedBody || g.bodyB === selectedBody) {
                 World.remove(world, g);
@@ -124,7 +122,7 @@ window.addEventListener("keydown", (e) => {
 
 
 // ==============================
-// DELETE GLUE DIRECTLY (DOUBLE CLICK)
+// DELETE GLUE (DOUBLE CLICK)
 // ==============================
 canvas.addEventListener("dblclick", () => {
     const mousePos = mouse.position;
@@ -133,9 +131,7 @@ canvas.addEventListener("dblclick", () => {
         const midX = (g.bodyA.position.x + g.bodyB.position.x) / 2;
         const midY = (g.bodyA.position.y + g.bodyB.position.y) / 2;
 
-        const dist = Math.hypot(midX - mousePos.x, midY - mousePos.y);
-
-        if (dist < 20) {
+        if (Math.hypot(midX - mousePos.x, midY - mousePos.y) < 20) {
             World.remove(world, g);
             return false;
         }
@@ -145,60 +141,75 @@ canvas.addEventListener("dblclick", () => {
 
 
 // ==============================
-// SCORING (HEIGHT)
+// SCORING
 // ==============================
 function calculateScore() {
     if (spaghetti.length === 0) return 0;
 
     let highestY = window.innerHeight;
 
-    spaghetti.forEach(body => {
-        if (body.position.y < highestY) {
-            highestY = body.position.y;
-        }
+    spaghetti.forEach(b => {
+        if (b.position.y < highestY) highestY = b.position.y;
     });
 
-    const groundY = window.innerHeight - 20;
-    return Math.max(0, Math.round(groundY - highestY));
+    return Math.max(0, Math.round((window.innerHeight - 20) - highestY));
 }
 
 Matter.Events.on(engine, "afterUpdate", () => {
     if (gameEnded) return;
 
     score = calculateScore();
-
-    if (score > maxHeight) {
-        maxHeight = score;
-    }
+    if (score > maxHeight) maxHeight = score;
 
     updateScoreDisplay();
 });
 
 
 // ==============================
-// SCORE UI
+// UI (SCORE + TIMER)
 // ==============================
-function updateScoreDisplay() {
-    let el = document.getElementById("score");
+function createUI(id, styles) {
+    let el = document.getElementById(id);
 
     if (!el) {
         el = document.createElement("div");
-        el.id = "score";
-
-        Object.assign(el.style, {
-            position: "absolute",
-            top: "10px",
-            left: "10px",
-            background: "rgba(0,0,0,0.7)",
-            color: "white",
-            padding: "10px",
-            borderRadius: "8px"
-        });
-
+        el.id = id;
+        Object.assign(el.style, styles);
         document.body.appendChild(el);
     }
 
+    return el;
+}
+
+function updateScoreDisplay() {
+    const el = createUI("score", {
+        position: "absolute",
+        top: "10px",
+        left: "10px",
+        background: "rgba(0,0,0,0.7)",
+        color: "white",
+        padding: "10px",
+        borderRadius: "8px"
+    });
+
     el.innerHTML = `Height: ${score}px<br>Best: ${maxHeight}px`;
+}
+
+function updateTimerDisplay() {
+    const el = createUI("timer", {
+        position: "absolute",
+        top: "10px",
+        right: "10px",
+        background: timeLeft < 60 ? "red" : "rgba(0,0,0,0.7)",
+        color: "white",
+        padding: "10px",
+        borderRadius: "8px"
+    });
+
+    const m = Math.floor(timeLeft / 60);
+    const s = timeLeft % 60;
+
+    el.innerHTML = `Time: ${m}:${s.toString().padStart(2, "0")}`;
 }
 
 
@@ -211,42 +222,29 @@ function startTimer() {
 
         timeLeft--;
 
-        if (timeLeft <= 0) {
-            endGame();
-        }
+        if (timeLeft <= 0) endGame();
 
         updateTimerDisplay();
     }, 1000);
 }
 
-function updateTimerDisplay() {
-    let el = document.getElementById("timer");
 
-    if (!el) {
-        el = document.createElement("div");
-        el.id = "timer";
+// ==============================
+// LEADERBOARD
+// ==============================
+const KEY = "spaghettiLeaderboard";
 
-        Object.assign(el.style, {
-            position: "absolute",
-            top: "10px",
-            right: "10px",
-            background: "rgba(0,0,0,0.7)",
-            color: "white",
-            padding: "10px",
-            borderRadius: "8px"
-        });
+function getLeaderboard() {
+    return JSON.parse(localStorage.getItem(KEY)) || [];
+}
 
-        document.body.appendChild(el);
-    }
+function saveScore(name, score) {
+    const list = getLeaderboard();
 
-    const m = Math.floor(timeLeft / 60);
-    const s = timeLeft % 60;
+    list.push({ name, score });
+    list.sort((a, b) => b.score - a.score);
 
-    el.innerHTML = `Time: ${m}:${s.toString().padStart(2, "0")}`;
-
-    if (timeLeft < 60) {
-        el.style.background = "red";
-    }
+    localStorage.setItem(KEY, JSON.stringify(list.slice(0, 5)));
 }
 
 
@@ -257,19 +255,18 @@ function endGame() {
     gameEnded = true;
     clearInterval(timerInterval);
 
-    showFinalScore();
-}
+    const name = prompt("Enter your name:", "Player");
+    if (name) saveScore(name, maxHeight);
 
-function showFinalScore() {
+    const scores = getLeaderboard();
+
     const overlay = document.createElement("div");
 
     Object.assign(overlay.style, {
         position: "absolute",
-        top: "0",
-        left: "0",
         width: "100%",
         height: "100%",
-        background: "rgba(0,0,0,0.8)",
+        background: "rgba(0,0,0,0.85)",
         display: "flex",
         flexDirection: "column",
         justifyContent: "center",
@@ -278,14 +275,16 @@ function showFinalScore() {
     });
 
     overlay.innerHTML = `
-        <h1>Time's Up!</h1>
-        <h2>Final Height: ${maxHeight}px</h2>
-        <button id="restartBtn">Restart</button>
+        <h1>🏆 Time's Up!</h1>
+        <h2>Your Height: ${maxHeight}px</h2>
+        <h3>Leaderboard</h3>
+        <ol>
+            ${scores.map(s => `<li>${s.name} - ${s.score}px</li>`).join("")}
+        </ol>
+        <button onclick="location.reload()">Play Again</button>
     `;
 
     document.body.appendChild(overlay);
-
-    document.getElementById("restartBtn").onclick = () => location.reload();
 }
 
 
@@ -301,7 +300,6 @@ const world = engine.world;
 
 const canvas = document.getElementById("game");
 
-// Renderer
 const render = Render.create({
     canvas: canvas,
     engine: engine,
@@ -326,24 +324,8 @@ let glue = [];
 let selectedBody = null;
 let lastBody = null;
 
-// Scoring
 let score = 0;
 let maxHeight = 0;
 
 // Timer
 const GAME_DURATION = 10 * 60;
-let timeLeft = GAME_DURATION;
-let gameEnded = false;
-let timerInterval = null;
-
-
-// ==============================
-// GROUND
-// ==============================
-const ground = Bodies.rectangle(
-    window.innerWidth / 2,
-    window.innerHeight - 20,
-    window.innerWidth,
-    40,
-    { isStatic: true }
-);
