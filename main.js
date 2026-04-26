@@ -1,13 +1,11 @@
-/* global document, window, Matter */
-
-// DOM
+/* global document, window, Matter *//* global DOM
 var modeEl = document.getElementById("mode");
 var rotationEl = document.getElementById("rotation");
 var scoreEl = document.getElementById("score");
 var timerEl = document.getElementById("timer");
 var canvas = document.getElementById("game");
 
-// Matter.js
+// Matter
 var Engine = Matter.Engine;
 var Render = Matter.Render;
 var Runner = Matter.Runner;
@@ -15,6 +13,8 @@ var World = Matter.World;
 var Bodies = Matter.Bodies;
 var Body = Matter.Body;
 var Constraint = Matter.Constraint;
+var Mouse = Matter.Mouse;
+var MouseConstraint = Matter.MouseConstraint;
 var Events = Matter.Events;
 
 // State
@@ -26,42 +26,23 @@ var constraints = [];
 
 var engine, render, runner;
 
+var GRID = 20;
 var SNAP_DISTANCE = 25;
+var bestScore = 0;
 
-// Challenge
-var challengeMode = false;
-var finalPlaced = false;
-var timer = 5;
+// Preview
+var preview = null;
 
-// ✅ NEW: Smooth snap animation
-function animateSnap(body) {
-  var scaleUp = 1.25;
-  var scaleDown = 1;
-
-  Body.scale(body, scaleUp, scaleUp);
-
-  setTimeout(function () {
-    Body.scale(body, scaleDown / scaleUp, scaleDown / scaleUp);
-  }, 120);
+// Snap to grid
+function snap(v) {
+  return Math.round(v / GRID) * GRID;
 }
 
 // Init
 function initGame() {
-  if (runner) Runner.stop(runner);
-  if (render) Render.stop(render);
-
   spaghetti = [];
   glue = [];
   constraints = [];
-
-  mode = "spaghetti";
-  rotation = 0;
-  challengeMode = false;
-  finalPlaced = false;
-  timerEl.textContent = "Timer: --";
-
-  canvas.width = window.innerWidth;
-  canvas.height = window.innerHeight;
 
   engine = Engine.create();
   engine.world.gravity.y = 0;
@@ -70,8 +51,8 @@ function initGame() {
     canvas: canvas,
     engine: engine,
     options: {
-      width: canvas.width,
-      height: canvas.height,
+      width: window.innerWidth,
+      height: window.innerHeight,
       wireframes: false,
       background: "#f4f4f4"
     }
@@ -80,211 +61,144 @@ function initGame() {
   runner = Runner.create();
 
   var ground = Bodies.rectangle(
-    canvas.width / 2,
-    canvas.height - 40,
-    canvas.width,
+    window.innerWidth / 2,
+    window.innerHeight - 40,
+    window.innerWidth,
     80,
     { isStatic: true }
   );
 
   World.add(engine.world, [ground]);
 
+  // ✅ Dragging enabled
+  var mouse = Mouse.create(canvas);
+  var mouseConstraint = MouseConstraint.create(engine, {
+    mouse: mouse,
+    constraint: { stiffness: 0.2 }
+  });
+
+  World.add(engine.world, mouseConstraint);
+  render.mouse = mouse;
+
   Render.run(render);
   Runner.run(runner, engine);
 
-  updateHUD();
-
   Events.on(engine, "afterUpdate", updateScore);
-  Events.on(engine, "afterUpdate", checkBreakage);
-}
-
-// HUD
-function updateHUD() {
-  var text = mode;
-  if (challengeMode) text += " (FINAL)";
-  modeEl.textContent = text;
-  rotationEl.textContent = rotation;
 }
 
 // Distance
-function distance(a, b) {
-  return Math.sqrt(
-    (a.x - b.x) * (a.x - b.x) +
-    (a.y - b.y) * (a.y - b.y)
-  );
+function dist(a, b) {
+  return Math.hypot(a.x - b.x, a.y - b.y);
 }
 
-// ✅ Glue snapping with animation
+// Glue snapping
 function glueStick(stick) {
-  for (var i = 0; i < glue.length; i++) {
-    var g = glue[i];
-
-    if (distance(g.position, stick.position) < SNAP_DISTANCE) {
-
-      animateSnap(g);      // ✅ animate glue
-      animateSnap(stick);  // ✅ animate stick
-
+  glue.forEach(function(g) {
+    if (dist(g.position, stick.position) < SNAP_DISTANCE) {
       var c = Constraint.create({
         bodyA: g,
         bodyB: stick,
-        stiffness: 0.9,
-        length: 0
+        stiffness: 0.9
       });
-
       constraints.push(c);
       World.add(engine.world, c);
     }
-  }
+  });
 }
 
 // Create spaghetti
 function createSpaghetti(x, y) {
-  var stick = Bodies.rectangle(x, y, 140, 6, {
-    isStatic: !challengeMode,
+  var s = Bodies.rectangle(x, y, 140, 6, {
+    isStatic: true,
     render: { fillStyle: "#f4d03f" }
   });
 
-  Body.setAngle(stick, rotation * Math.PI / 180);
+  Body.setAngle(s, rotation * Math.PI / 180);
 
-  World.add(engine.world, stick);
-  spaghetti.push(stick);
-
-  animateSnap(stick);  // ✅ visual feedback
-
-  glueStick(stick);
+  World.add(engine.world, s);
+  spaghetti.push(s);
+  glueStick(s);
 }
 
-// Create glue (blue ✅)
-function createGlue(x, y, isFinal) {
-  var g = Bodies.circle(x, y, isFinal ? 18 : 12, {
-    isStatic: !challengeMode,
+// Create glue
+function createGlue(x, y) {
+  var g = Bodies.circle(x, y, 12, {
+    isStatic: true,
     render: { fillStyle: "#3498db" }
   });
 
   World.add(engine.world, g);
   glue.push(g);
 
-  animateSnap(g);  // ✅ animation
-
-  for (var i = 0; i < spaghetti.length; i++) {
-    glueStick(spaghetti[i]);
-  }
-
-  if (isFinal) startTest();
+  spaghetti.forEach(glueStick);
 }
 
-// Click
-document.addEventListener("click", function (event) {
-  if (event.target.closest("#hud")) return;
+// ✅ Ghost preview
+document.addEventListener("mousemove", function(e) {
+  var x = snap(e.clientX);
+  var y = snap(e.clientY);
 
-  var x = event.clientX;
-  var y = event.clientY;
+  if (preview) World.remove(engine.world, preview);
 
-  if (challengeMode && !finalPlaced) {
-    finalPlaced = true;
-    createGlue(x, y, true);
-    return;
+  if (mode === "spaghetti") {
+    preview = Bodies.rectangle(x, y, 140, 6, {
+      isStatic: true,
+      render: { fillStyle: "rgba(244,208,63,0.4)" }
+    });
+  } else {
+    preview = Bodies.circle(x, y, 12, {
+      isStatic: true,
+      render: { fillStyle: "rgba(52,152,219,0.4)" }
+    });
   }
+
+  World.add(engine.world, preview);
+});
+
+// Click placement
+document.addEventListener("click", function(e) {
+  if (e.target.closest("#hud")) return;
+
+  var x = snap(e.clientX);
+  var y = snap(e.clientY);
 
   if (mode === "spaghetti") {
     createSpaghetti(x, y);
   } else {
-    createGlue(x, y, false);
+    createGlue(x, y);
   }
 });
 
 // Buttons
-document.getElementById("toggle").onclick = function () {
+document.getElementById("toggle").onclick = function() {
   mode = mode === "spaghetti" ? "glue" : "spaghetti";
-  updateHUD();
+  modeEl.textContent = mode;
 };
 
-document.getElementById("rotate").onclick = function () {
+document.getElementById("rotate").onclick = function() {
   rotation += 15;
-  updateHUD();
+  rotationEl.textContent = rotation;
 };
 
-document.getElementById("reset").onclick = function () {
+document.getElementById("reset").onclick = function() {
   initGame();
 };
 
-// Challenge trigger
-document.addEventListener("keydown", function (e) {
-  if (e.key.toLowerCase() === "t") {
-    challengeMode = true;
-    updateHUD();
-    timer = 5;
-    timerEl.textContent = "Timer: 5";
-  }
-});
-
-// Test
-function startTest() {
-  engine.world.gravity.y = 1;
-
-  var allBodies = spaghetti.concat(glue);
-  for (var i = 0; i < allBodies.length; i++) {
-    Body.setStatic(allBodies[i], false);
-  }
-
-  var interval = setInterval(function () {
-    timer--;
-    timerEl.textContent = "Timer: " + timer;
-
-    if (timer <= 0) {
-      clearInterval(interval);
-      showResult(true);
-    }
-  }, 1000);
-
-  Events.on(engine, "afterUpdate", function () {
-    for (var i = 0; i < glue.length; i++) {
-      if (glue[i].position.y > canvas.height - 50) {
-        showResult(false);
-      }
-    }
-  });
-}
-
-// Break under stress
-function checkBreakage() {
-  for (var i = constraints.length - 1; i >= 0; i--) {
-    var c = constraints[i];
-
-    var dx = c.bodyA.position.x - c.bodyB.position.x;
-    var dy = c.bodyA.position.y - c.bodyB.position.y;
-    var dist = Math.sqrt(dx * dx + dy * dy);
-
-    if (dist > 80) {
-      World.remove(engine.world, c);
-      constraints.splice(i, 1);
-    }
-  }
-}
-
-// Score
+// Score + leaderboard
 function updateScore() {
-  var highest = canvas.height;
-  var allBodies = spaghetti.concat(glue);
+  var highest = window.innerHeight;
 
-  for (var i = 0; i < allBodies.length; i++) {
-    if (allBodies[i].position.y < highest) {
-      highest = allBodies[i].position.y;
-    }
-  }
+  spaghetti.concat(glue).forEach(function(b) {
+    if (b.position.y < highest) highest = b.position.y;
+  });
 
-  var score = Math.max(0, Math.round(canvas.height - highest));
-  scoreEl.textContent = "Score: " + score;
-}
+  var score = Math.round(window.innerHeight - highest);
 
-// Overlay result
-function showResult(success) {
-  var overlay = document.getElementById("overlay");
-  var text = document.getElementById("resultText");
+  if (score > bestScore) bestScore = score;
 
-  overlay.style.display = "flex";
-  text.textContent = success ? "✅ SUCCESS!" : "❌ COLLAPSE!";
+  scoreEl.textContent = "Score: " + score + " | Best: " + bestScore;
 }
 
 // Start
 initGame();
+
