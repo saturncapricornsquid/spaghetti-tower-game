@@ -23,7 +23,7 @@
       position: fixed;
       top: 10px;
       left: 10px;
-      width: 410px;
+      width: 420px;
       background: white;
       padding: 14px 16px;
       border-radius: 10px;
@@ -89,5 +89,30 @@
     <div>🧱 Build mode: <span id="buildModeLabel">Spaghetti</span></div>
 
     <div id="status">
-      Click <strong>Switch to marshmallow</strong> to place connector marshmallows.  
-      Press <strong>M</strong> to switch materials. Press <strong>R</strong> or use rotate buttons for spaghetti.
+      Click in the grey area to place material. Press <strong>M</strong> to switch material. Press <strong>R</strong> or use rotate buttons for spaghetti.
+    </div>
+
+    <button id="rotateLeft">Rotate -15°</button>
+    <button id="rotateRight">Rotate +15°</button>
+    <button id="toggleMaterial">Switch to marshmallow</button>
+    <button id="add">Add material (centre)</button>
+    <button id="reset">Reset round</button>
+  </div>
+
+  <canvas id="game"></canvas>
+
+  <div id="finalPanel" class="hidden">
+    <div id="finalCard">
+      <h2 id="finalTitle">Round complete</h2>
+      <p id="finalMessage"></p>
+      <p><strong>Final score:</strong> <span id="finalScore">0</span></p>
+      <p><strong>Spaghetti used:</strong> <span id="finalUsed">0</span></p>
+      <p><strong>Connector marshmallows used:</strong> <span id="finalConnectorUsed">0</span></p>
+      <p><strong>Final marshmallow placed:</strong> <span id="finalMarshmallow">No</span></p>
+      <button id="playAgain">Play again</button>
+    </div>
+  </div>
+
+  <script src="main.js"></script>
+</body>
+</html>
