@@ -1,75 +1,55 @@
-<style>
-  body {
-    margin: 0;
-    font-family: Arial, sans-serif;
-    background: #f4f4f4;
-    overflow: hidden;
-  }
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Spaghetti Tower</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  /* IMPORTANT: canvas no longer captures clicks */
-  canvas {
-    position: fixed;
-    inset: 0;
-    display: block;
-    z-index: 0;
-    pointer-events: none;
-  }
+  <!-- Matter.js -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.20.0/matter.min.js"></script>
 
-  #hud {
-    position: fixed;
-    top: 10px;
-    left: 10px;
-    width: 430px;
-    background: white;
-    padding: 14px 16px;
-    border-radius: 10px;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
-    z-index: 1000;
-    line-height: 1.6;
-  }
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #f4f4f4;
+    }
 
-  #hud button {
-    margin-top: 8px;
-    margin-right: 6px;
-    padding: 8px 12px;
-    font-size: 14px;
-    cursor: pointer;
-    border: 1px solid #ccc;
-    border-radius: 6px;
-    background: #f8f8f8;
-  }
+    canvas {
+      display: block;
+    }
 
-  #hud button:hover {
-    background: #eeeeee;
-  }
+    #hud {
+      position: fixed;
+      top: 10px;
+      left: 10px;
+      background: white;
+      padding: 12px;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+      z-index: 10;
+    }
 
-  #status {
-    margin-top: 8px;
-    font-size: 13px;
-    min-height: 48px;
-    color: #333;
-  }
+    button {
+      display: block;
+      margin: 6px 0;
+      padding: 6px 10px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
 
-  #finalPanel {
-    position: fixed;
-    inset: 0;
-    background: rgba(0,0,0,0.45);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 2000;
-  }
+  <div id="hud">
+    <div>Mode: <strong id="mode">Spaghetti</strong></div>
+    <button id="toggle">Switch material</button>
+    <button id="rotate">Rotate</button>
+    <button id="reset">Reset</button>
+  </div>
 
-  #finalPanel.hidden {
-    display: none;
-  }
+  <canvas id="game"></canvas>
 
-  #finalCard {
-    background: white;
-    padding: 24px;
-    border-radius: 16px;
-    width: 380px;
-    max-width: 90vw;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.25);
-  }
-</style>
+  <!-- Your game logic -->
+  <script src="main.js"></script>
+</body>
+</html>
