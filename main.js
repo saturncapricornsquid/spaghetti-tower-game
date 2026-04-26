@@ -1,4 +1,7 @@
-const { Engine, Render, Runner, World, Bodies, Body, Events } = Matter;const { Engine, Render, Runner, World, Bodies,Id("game");
+const { Engine, Render, Runner, World, Bodies, Body, Events } = Matter;
+
+/* DOM references */
+const canvas = document.getElementById("game");
 const timeEl = document.getElementById("time");
 const countEl = document.getElementById("count");
 const scoreEl = document.getElementById("score");
@@ -28,7 +31,7 @@ const changeTeamBtn = document.getElementById("changeTeam");
 
 /* Constants */
 const GROUND_HEIGHT = 80;
-const ROT_STEP = Math.PI / 12; // 15 degrees
+const ROT_STEP = Math.PI / 12;
 const SPAGHETTI_LENGTH = 140;
 const SPAGHETTI_THICKNESS = 6;
 const HUD_SAFE_WIDTH = 450;
@@ -59,7 +62,7 @@ let previewY = window.innerHeight / 2;
 
 let keyboardHandlerAttached = false;
 
-/* Start setup */
+/* Setup */
 startGameBtn.onclick = () => {
   const enteredNames = playerInputs
     .map(input => input.value.trim())
@@ -85,7 +88,7 @@ changeTeamBtn.onclick = () => {
   setupPanel.style.display = "flex";
 };
 
-/* Init game */
+/* Init */
 function initGame() {
   stopTimers();
   stopMatter();
@@ -144,7 +147,6 @@ function initGame() {
   startTimer();
 }
 
-/* Matter world */
 function createWorld() {
   const ground = Bodies.rectangle(
     canvas.width / 2,
@@ -158,21 +160,15 @@ function createWorld() {
     }
   );
 
-  const leftWall = Bodies.rectangle(
-    -25,
-    canvas.height / 2,
-    50,
-    canvas.height,
-    { isStatic: true, render: { visible: false } }
-  );
+  const leftWall = Bodies.rectangle(-25, canvas.height / 2, 50, canvas.height, {
+    isStatic: true,
+    render: { visible: false }
+  });
 
-  const rightWall = Bodies.rectangle(
-    canvas.width + 25,
-    canvas.height / 2,
-    50,
-    canvas.height,
-    { isStatic: true, render: { visible: false } }
-  );
+  const rightWall = Bodies.rectangle(canvas.width + 25, canvas.height / 2, 50, canvas.height, {
+    isStatic: true,
+    render: { visible: false }
+  });
 
   World.add(engine.world, [ground, leftWall, rightWall]);
 }
@@ -249,7 +245,6 @@ function placeSpaghetti(x, y, angle = rotation) {
   updateHud();
 
   statusEl.innerText = `${builderName} placed spaghetti.`;
-
   advanceTurn();
 
   if (spaghettiLeft === 0) {
@@ -343,21 +338,13 @@ function attachKeyboardHandlerOnce() {
   keyboardHandlerAttached = true;
 
   document.addEventListener("keydown", (event) => {
-    if (event.key.toLowerCase() === "r") {
-      rotateNextPiece(ROT_STEP);
-    }
-
-    if (event.key === "ArrowLeft") {
-      rotateNextPiece(-ROT_STEP);
-    }
-
-    if (event.key === "ArrowRight") {
-      rotateNextPiece(ROT_STEP);
-    }
+    if (event.key.toLowerCase() === "r") rotateNextPiece(ROT_STEP);
+    if (event.key === "ArrowLeft") rotateNextPiece(-ROT_STEP);
+    if (event.key === "ArrowRight") rotateNextPiece(ROT_STEP);
   });
 }
 
-/* Matter events */
+/* Engine events */
 function attachEngineHandlers() {
   Events.on(engine, "afterUpdate", () => {
     if (gameEnded) return;
@@ -376,11 +363,9 @@ function attachPreviewRenderer() {
     if (gameEnded) return;
     if (timeLeft <= 0) return;
     if (spaghettiLeft <= 0) return;
-
     if (previewX < HUD_SAFE_WIDTH && previewY < HUD_SAFE_HEIGHT) return;
 
     const ctx = render.context;
-
     ctx.save();
     ctx.translate(previewX, previewY);
     ctx.rotate(rotation);
@@ -396,7 +381,7 @@ function attachPreviewRenderer() {
   });
 }
 
-/* Timer / round flow */
+/* Timer */
 function startTimer() {
   countdownInterval = setInterval(() => {
     if (gameEnded) return;
@@ -437,14 +422,13 @@ function stopTimers() {
     clearInterval(countdownInterval);
     countdownInterval = null;
   }
-
   if (stabilityInterval) {
     clearInterval(stabilityInterval);
     stabilityInterval = null;
   }
 }
 
-/* Score / HUD */
+/* Score */
 function updateScore() {
   if (spaghettiBodies.length === 0) {
     score = 0;
@@ -452,7 +436,6 @@ function updateScore() {
   }
 
   let topY = Infinity;
-
   for (const body of spaghettiBodies) {
     if (body && body.bounds && body.bounds.min.y < topY) {
       topY = body.bounds.min.y;
@@ -472,10 +455,9 @@ function updateHud() {
   updateCurrentPlayer();
 }
 
-/* Success / failure */
+/* End game */
 function hasTowerFailed() {
   if (!marshmallowBody) return false;
-
   const floorLine = canvas.height - GROUND_HEIGHT - 5;
   return marshmallowBody.position.y >= floorLine;
 }
@@ -512,5 +494,4 @@ window.addEventListener("resize", () => {
     initGame();
   }
 });
-
-/* DOM */
+``
