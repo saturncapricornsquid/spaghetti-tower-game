@@ -8,11 +8,13 @@ const scoreEl = document.getElementById("score");
 const rotationEl = document.getElementById("rotation");
 const currentPlayerEl = document.getElementById("currentPlayer");
 const statusEl = document.getElementById("status");
+const marshmallowCountEl = document.getElementById("marshmallowCount");
 
 const rotateLeftBtn = document.getElementById("rotateLeft");
 const rotateRightBtn = document.getElementById("rotateRight");
 const addBtn = document.getElementById("add");
 const resetBtn = document.getElementById("reset");
+const toggleMaterialBtn = document.getElementById("toggleMaterial");
 
 const setupPanel = document.getElementById("setupPanel");
 const startGameBtn = document.getElementById("startGame");
@@ -31,30 +33,33 @@ const changeTeamBtn = document.getElementById("changeTeam");
 
 /* Constants */
 const GROUND_HEIGHT = 80;
-const ROT_STEP = Math.PI / 12; // 15 degrees
+const ROT_STEP = Math.PI / 12;
 const SPAGHETTI_LENGTH = 140;
 const SPAGHETTI_THICKNESS = 6;
-const HUD_SAFE_WIDTH = 450;
-const HUD_SAFE_HEIGHT = 320;
+const HUD_SAFE_WIDTH = 500;
+const HUD_SAFE_HEIGHT = 360;
 
 /* Game state */
 let engine = null;
 let render = null;
 let runner = null;
 let spaghettiBodies = [];
-let marshmallowBody = null;
+let connectorMarshmallows = [];
+let finalTopMarshmallow = null;
 
 let players = [];
 let currentPlayerIndex = 0;
 let lastBuilder = "";
 
 let spaghettiLeft = 20;
+let connectorMarshmallowsLeft = 10;
 let score = 0;
 let timeLeft = 30;
 let rotation = 0;
 let gameEnded = false;
-let marshmallowPlaced = false;
+let finalMarshmallowPlaced = false;
 
+let buildMode = "spaghetti"; // spaghetti | connectorMarshmallow
 let countdownInterval = null;
 let stabilityInterval = null;
 let previewX = window.innerWidth / 2;
@@ -94,14 +99,17 @@ function initGame() {
   stopMatter();
 
   spaghettiBodies = [];
-  marshmallowBody = null;
+  connectorMarshmallows = [];
+  finalTopMarshmallow = null;
 
   spaghettiLeft = 20;
+  connectorMarshmallowsLeft = 10;
   score = 0;
   timeLeft = 30;
   rotation = 0;
   gameEnded = false;
-  marshmallowPlaced = false;
+  finalMarshmallowPlaced = false;
+  buildMode = "spaghetti";
 
   currentPlayerIndex = 0;
   lastBuilder = players[0] || "—";
@@ -142,7 +150,7 @@ function initGame() {
 
   updateHud();
   statusEl.innerText =
-    `${players[currentPlayerIndex]}'s turn. Move the mouse, rotate if needed, then click to place spaghetti.`;
+    `${players[currentPlayerIndex]}'s turn. Current material: spaghetti.`;
 
   startTimer();
 }
@@ -205,9 +213,19 @@ function createSpaghetti(x, y, angle = 0) {
   return stick;
 }
 
-function createMarshmallow(x, y) {
+function createConnectorMarshmallow(x, y) {
+  return Bodies.circle(x, y, 12, {
+    label: "connectorMarshmallow",
+    density: 0.008,
+    friction: 0.8,
+    restitution: 0.05,
+    render: { fillStyle: "#fffaf5" }
+  });
+}
+
+function createFinalTopMarshmallow(x, y) {
   return Bodies.circle(x, y, 22, {
-    label: "marshmallow",
+    label: "finalMarshmallow",
     density: 0.01,
     friction: 0.6,
     restitution: 0.05,
@@ -229,20 +247,18 @@ function advanceTurn() {
 /* Placement */
 function placeSpaghetti(x, y, angle = rotation) {
   if (gameEnded) return;
-
   if (timeLeft <= 0) {
-    statusEl.innerText = "Building time is over. Place the marshmallow now.";
+    statusEl.innerText = "Building time is over. Place the final marshmallow now.";
     return;
   }
-
   if (spaghettiLeft <= 0) {
-    statusEl.innerText = "No spaghetti left. Wait for the marshmallow phase.";
+    statusEl.innerText = "No spaghetti left.";
     return;
   }
 
   const builderName = players[currentPlayerIndex];
-
   const stick = createSpaghetti(x, y, angle);
+
   spaghettiBodies.push(stick);
   World.add(engine.world, stick);
 
@@ -252,28 +268,48 @@ function placeSpaghetti(x, y, angle = rotation) {
 
   statusEl.innerText = `${builderName} placed spaghetti.`;
   advanceTurn();
-
-  if (spaghettiLeft === 0) {
-    statusEl.innerText += " No spaghetti left — wait for marshmallow phase.";
-  }
 }
 
-function placeMarshmallow(x, y) {
+function placeConnectorMarshmallow(x, y) {
   if (gameEnded) return;
-  if (marshmallowPlaced) return;
+  if (timeLeft <= 0) {
+    statusEl.innerText = "Building time is over. Place the final marshmallow now.";
+    return;
+  }
+  if (connectorMarshmallowsLeft <= 0) {
+    statusEl.innerText = "No connector marshmallows left.";
+    return;
+  }
+
+  const builderName = players[currentPlayerIndex];
+  const node = createConnectorMarshmallow(x, y);
+
+  connectorMarshmallows.push(node);
+  World.add(engine.world, node);
+
+  connectorMarshmallowsLeft--;
+  updateHud();
+
+  statusEl.innerText = `${builderName} placed a connector marshmallow.`;
+  advanceTurn();
+}
+
+function placeFinalTopMarshmallow(x, y) {
+  if (gameEnded) return;
+  if (finalMarshmallowPlaced) return;
 
   if (timeLeft > 0) {
-    statusEl.innerText = "You can only place the marshmallow when the timer reaches 0.";
+    statusEl.innerText = "You can only place the final marshmallow when the timer reaches 0.";
     return;
   }
 
   const builderName = players[currentPlayerIndex];
 
-  marshmallowBody = createMarshmallow(x, y);
-  marshmallowPlaced = true;
-  World.add(engine.world, marshmallowBody);
+  finalTopMarshmallow = createFinalTopMarshmallow(x, y);
+  finalMarshmallowPlaced = true;
+  World.add(engine.world, finalTopMarshmallow);
 
-  statusEl.innerText = `${builderName} placed the marshmallow. Tower must stand for 10 seconds...`;
+  statusEl.innerText = `${builderName} placed the final marshmallow. Tower must stand for 10 seconds...`;
 
   advanceTurn();
   startStabilityCheck();
@@ -283,6 +319,7 @@ function placeMarshmallow(x, y) {
 function rotateNextPiece(delta) {
   if (gameEnded) return;
   if (timeLeft <= 0) return;
+  if (buildMode !== "spaghetti") return;
 
   rotation += delta;
   updateHud();
@@ -313,9 +350,13 @@ function attachCanvasHandlers() {
     if (x < HUD_SAFE_WIDTH && y < HUD_SAFE_HEIGHT) return;
 
     if (timeLeft > 0) {
-      placeSpaghetti(x, y, rotation);
-    } else if (!marshmallowPlaced) {
-      placeMarshmallow(x, y);
+      if (buildMode === "spaghetti") {
+        placeSpaghetti(x, y, rotation);
+      } else {
+        placeConnectorMarshmallow(x, y);
+      }
+    } else if (!finalMarshmallowPlaced) {
+      placeFinalTopMarshmallow(x, y);
     }
   };
 }
@@ -328,15 +369,35 @@ function attachUIHandlers() {
     if (gameEnded) return;
 
     if (timeLeft > 0) {
-      placeSpaghetti(canvas.width / 2, 120, rotation);
-    } else if (!marshmallowPlaced) {
-      placeMarshmallow(canvas.width / 2, 90);
+      if (buildMode === "spaghetti") {
+        placeSpaghetti(canvas.width / 2, 120, rotation);
+      } else {
+        placeConnectorMarshmallow(canvas.width / 2, 120);
+      }
+    } else if (!finalMarshmallowPlaced) {
+      placeFinalTopMarshmallow(canvas.width / 2, 90);
     }
   };
 
   resetBtn.onclick = () => {
     initGame();
   };
+
+  if (toggleMaterialBtn) {
+    toggleMaterialBtn.onclick = () => {
+      if (timeLeft <= 0) return;
+
+      buildMode = buildMode === "spaghetti" ? "connectorMarshmallow" : "spaghetti";
+      toggleMaterialBtn.innerText =
+        buildMode === "spaghetti"
+          ? "Switch to marshmallow"
+          : "Switch to spaghetti";
+
+      statusEl.innerText = `${players[currentPlayerIndex]}'s turn. Current material: ${
+        buildMode === "spaghetti" ? "spaghetti" : "connector marshmallow"
+      }.`;
+    };
+  }
 }
 
 function attachKeyboardHandlerOnce() {
@@ -347,6 +408,18 @@ function attachKeyboardHandlerOnce() {
     if (event.key.toLowerCase() === "r") rotateNextPiece(ROT_STEP);
     if (event.key === "ArrowLeft") rotateNextPiece(-ROT_STEP);
     if (event.key === "ArrowRight") rotateNextPiece(ROT_STEP);
+    if (event.key.toLowerCase() === "m" && timeLeft > 0) {
+      buildMode = buildMode === "spaghetti" ? "connectorMarshmallow" : "spaghetti";
+      if (toggleMaterialBtn) {
+        toggleMaterialBtn.innerText =
+          buildMode === "spaghetti"
+            ? "Switch to marshmallow"
+            : "Switch to spaghetti";
+      }
+      statusEl.innerText = `${players[currentPlayerIndex]}'s turn. Current material: ${
+        buildMode === "spaghetti" ? "spaghetti" : "connector marshmallow"
+      }.`;
+    }
   });
 }
 
@@ -354,7 +427,7 @@ function attachKeyboardHandlerOnce() {
 function attachEngineHandlers() {
   Events.on(engine, "afterUpdate", () => {
     if (gameEnded) return;
-    if (!marshmallowPlaced) return;
+    if (!finalMarshmallowPlaced) return;
 
     updateScore();
 
@@ -368,21 +441,32 @@ function attachPreviewRenderer() {
   Events.on(render, "afterRender", () => {
     if (gameEnded) return;
     if (timeLeft <= 0) return;
-    if (spaghettiLeft <= 0) return;
+
     if (previewX < HUD_SAFE_WIDTH && previewY < HUD_SAFE_HEIGHT) return;
 
     const ctx = render.context;
     ctx.save();
     ctx.translate(previewX, previewY);
-    ctx.rotate(rotation);
     ctx.globalAlpha = 0.45;
-    ctx.fillStyle = "#d4ac0d";
-    ctx.fillRect(
-      -SPAGHETTI_LENGTH / 2,
-      -SPAGHETTI_THICKNESS / 2,
-      SPAGHETTI_LENGTH,
-      SPAGHETTI_THICKNESS
-    );
+
+    if (buildMode === "spaghetti" && spaghettiLeft > 0) {
+      ctx.rotate(rotation);
+      ctx.fillStyle = "#d4ac0d";
+      ctx.fillRect(
+        -SPAGHETTI_LENGTH / 2,
+        -SPAGHETTI_THICKNESS / 2,
+        SPAGHETTI_LENGTH,
+        SPAGHETTI_THICKNESS
+      );
+    }
+
+    if (buildMode === "connectorMarshmallow" && connectorMarshmallowsLeft > 0) {
+      ctx.fillStyle = "#fffaf5";
+      ctx.beginPath();
+      ctx.arc(0, 0, 12, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
     ctx.restore();
   });
 }
@@ -398,7 +482,7 @@ function startTimer() {
     if (timeLeft <= 0) {
       clearInterval(countdownInterval);
       countdownInterval = null;
-      statusEl.innerText = `${players[currentPlayerIndex]}'s turn to place the marshmallow.`;
+      statusEl.innerText = `${players[currentPlayerIndex]}'s turn to place the final marshmallow.`;
     }
   }, 1000);
 }
@@ -436,13 +520,15 @@ function stopTimers() {
 
 /* Score */
 function updateScore() {
-  if (spaghettiBodies.length === 0) {
+  const allStructuralBodies = [...spaghettiBodies, ...connectorMarshmallows];
+
+  if (allStructuralBodies.length === 0) {
     score = 0;
     return;
   }
 
   let topY = Infinity;
-  for (const body of spaghettiBodies) {
+  for (const body of allStructuralBodies) {
     if (body && body.bounds && body.bounds.min.y < topY) {
       topY = body.bounds.min.y;
     }
@@ -456,6 +542,9 @@ function updateHud() {
   const secs = String(Math.max(0, timeLeft % 60)).padStart(2, "0");
   timeEl.innerText = `${String(mins).padStart(2, "0")}:${secs}`;
   countEl.innerText = String(spaghettiLeft);
+  if (marshmallowCountEl) {
+    marshmallowCountEl.innerText = String(connectorMarshmallowsLeft);
+  }
   scoreEl.innerText = String(score);
   rotationEl.innerText = `${normalisedDegrees(rotation)}°`;
   updateCurrentPlayer();
@@ -463,9 +552,9 @@ function updateHud() {
 
 /* End game */
 function hasTowerFailed() {
-  if (!marshmallowBody) return false;
+  if (!finalTopMarshmallow) return false;
   const floorLine = canvas.height - GROUND_HEIGHT - 5;
-  return marshmallowBody.position.y >= floorLine;
+  return finalTopMarshmallow.position.y >= floorLine;
 }
 
 function endGame(success) {
@@ -478,13 +567,13 @@ function endGame(success) {
 
   finalTitle.innerText = success ? "✅ Success!" : "❌ Failed";
   finalMessage.innerText = success
-    ? "The tower held the marshmallow for 10 seconds."
+    ? "The tower held the final marshmallow for 10 seconds."
     : "The tower did not survive the marshmallow test.";
 
   finalScore.innerText = String(score);
   finalHeight.innerText = String(score);
   finalUsed.innerText = String(20 - spaghettiLeft);
-  finalMarshmallow.innerText = marshmallowPlaced ? "Yes" : "No";
+  finalMarshmallow.innerText = finalTopMarshmallow ? "Yes" : "No";
   finalBuilder.innerText = lastBuilder;
 
   finalPanel.classList.remove("hidden");
@@ -500,4 +589,3 @@ window.addEventListener("resize", () => {
     initGame();
   }
 });
-``
