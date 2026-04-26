@@ -3,12 +3,9 @@
 // DOM
 var modeEl = document.getElementById("mode");
 var rotationEl = document.getElementById("rotation");
+var scoreEl = document.getElementById("score");
+var timerEl = document.getElementById("timer");
 var canvas = document.getElementById("game");
-
-// Score display
-var scoreEl = document.createElement("div");
-scoreEl.textContent = "Score: 0";
-document.getElementById("hud").appendChild(scoreEl);
 
 // Matter.js
 var Engine = Matter.Engine;
@@ -24,18 +21,17 @@ var Events = Matter.Events;
 var mode = "spaghetti";
 var rotation = 0;
 var spaghetti = [];
-var marshmallows = [];
+var glue = [];            // ✅ renamed from marshmallow
 var constraints = [];
 
 var engine, render, runner;
 
 var SNAP_DISTANCE = 25;
-var BREAK_FORCE = 0.02;
 
-// Challenge mode
+// Challenge state
 var challengeMode = false;
 var finalPlaced = false;
-var timer = null;
+var timer = 5;
 
 // Init
 function initGame() {
@@ -43,13 +39,14 @@ function initGame() {
   if (render) Render.stop(render);
 
   spaghetti = [];
-  marshmallows = [];
+  glue = [];
   constraints = [];
 
   mode = "spaghetti";
   rotation = 0;
   challengeMode = false;
   finalPlaced = false;
+  timerEl.textContent = "Timer: --";
 
   canvas.width = window.innerWidth;
   canvas.height = window.innerHeight;
@@ -89,7 +86,7 @@ function initGame() {
   Events.on(engine, "afterUpdate", checkBreakage);
 }
 
-// HUD
+// HUD ✅ (fixes mode text)
 function updateHUD() {
   var text = mode;
   if (challengeMode) text += " (FINAL)";
@@ -97,7 +94,7 @@ function updateHUD() {
   rotationEl.textContent = rotation;
 }
 
-// Distance
+// Distance helper
 function distance(a, b) {
   return Math.sqrt(
     (a.x - b.x) * (a.x - b.x) +
@@ -105,51 +102,21 @@ function distance(a, b) {
   );
 }
 
-// Endpoints
-function getEndpoints(body) {
-  var angle = body.angle;
-  var half = 70;
-
-  var cos = Math.cos(angle);
-  var sin = Math.sin(angle);
-
-  return [
-    {
-      x: body.position.x - half * cos,
-      y: body.position.y - half * sin
-    },
-    {
-      x: body.position.x + half * cos,
-      y: body.position.y + half * sin
-    }
-  ];
-}
-
-// Glue
+// Glue snapping
 function glueStick(stick) {
-  var endpoints = getEndpoints(stick);
+  for (var i = 0; i < glue.length; i++) {
+    var g = glue[i];
 
-  for (var i = 0; i < endpoints.length; i++) {
-    var point = endpoints[i];
+    if (distance(g.position, stick.position) < SNAP_DISTANCE) {
+      var c = Constraint.create({
+        bodyA: g,
+        bodyB: stick,
+        stiffness: 0.9,
+        length: 0
+      });
 
-    for (var j = 0; j < marshmallows.length; j++) {
-      var m = marshmallows[j];
-
-      if (distance(point, m.position) < SNAP_DISTANCE) {
-        var c = Constraint.create({
-          bodyA: m,
-          bodyB: stick,
-          pointB: {
-            x: point.x - stick.position.x,
-            y: point.y - stick.position.y
-          },
-          stiffness: 0.9,
-          length: 0
-        });
-
-        constraints.push(c);
-        World.add(engine.world, c);
-      }
+      constraints.push(c);
+      World.add(engine.world, c);
     }
   }
 }
@@ -161,7 +128,7 @@ function createSpaghetti(x, y) {
     render: { fillStyle: "#f4d03f" }
   });
 
-  Body.setAngle(stick, (rotation * Math.PI) / 180);
+  Body.setAngle(stick, rotation * Math.PI / 180);
 
   World.add(engine.world, stick);
   spaghetti.push(stick);
@@ -169,15 +136,15 @@ function createSpaghetti(x, y) {
   glueStick(stick);
 }
 
-// Create marshmallow
-function createMarshmallow(x, y, isFinal) {
-  var m = Bodies.circle(x, y, isFinal ? 18 : 12, {
+// Create glue ✅ (blue + renamed)
+function createGlue(x, y, isFinal) {
+  var g = Bodies.circle(x, y, isFinal ? 18 : 12, {
     isStatic: !challengeMode,
-    render: { fillStyle: isFinal ? "#ffffff" : "#fffaf5" }
+    render: { fillStyle: "#3498db" }
   });
 
-  World.add(engine.world, m);
-  marshmallows.push(m);
+  World.add(engine.world, g);
+  glue.push(g);
 
   for (var i = 0; i < spaghetti.length; i++) {
     glueStick(spaghetti[i]);
@@ -186,7 +153,7 @@ function createMarshmallow(x, y, isFinal) {
   if (isFinal) startTest();
 }
 
-// Click
+// Click placement
 document.addEventListener("click", function (event) {
   if (event.target.closest("#hud")) return;
 
@@ -195,20 +162,20 @@ document.addEventListener("click", function (event) {
 
   if (challengeMode && !finalPlaced) {
     finalPlaced = true;
-    createMarshmallow(x, y, true);
+    createGlue(x, y, true);
     return;
   }
 
   if (mode === "spaghetti") {
     createSpaghetti(x, y);
   } else {
-    createMarshmallow(x, y, false);
+    createGlue(x, y, false);
   }
 });
 
-// Buttons
+// Buttons ✅ (fixes mode toggle text)
 document.getElementById("toggle").onclick = function () {
-  mode = mode === "spaghetti" ? "marshmallow" : "spaghetti";
+  mode = mode === "spaghetti" ? "glue" : "spaghetti";
   updateHUD();
 };
 
@@ -221,12 +188,13 @@ document.getElementById("reset").onclick = function () {
   initGame();
 };
 
-// Challenge trigger (press T)
+// Challenge trigger
 document.addEventListener("keydown", function (e) {
-  if (e.key === "t") {
+  if (e.key.toLowerCase() === "t") {
     challengeMode = true;
     updateHUD();
-    alert("Click to place FINAL marshmallow");
+    timer = 5;
+    timerEl.textContent = "Timer: 5";
   }
 });
 
@@ -234,31 +202,31 @@ document.addEventListener("keydown", function (e) {
 function startTest() {
   engine.world.gravity.y = 1;
 
-  var allBodies = spaghetti.concat(marshmallows);
+  var allBodies = spaghetti.concat(glue);
   for (var i = 0; i < allBodies.length; i++) {
     Body.setStatic(allBodies[i], false);
   }
 
-  var survived = true;
+  var interval = setInterval(function () {
+    timer--;
+    timerEl.textContent = "Timer: " + timer;
 
-  timer = setTimeout(function () {
-    if (survived) {
-      alert("✅ SUCCESS! Tower held!");
+    if (timer <= 0) {
+      clearInterval(interval);
+      showResult(true);
     }
-  }, 5000);
+  }, 1000);
 
   Events.on(engine, "afterUpdate", function () {
-    for (var i = 0; i < marshmallows.length; i++) {
-      if (marshmallows[i].position.y > canvas.height - 50) {
-        survived = false;
-        clearTimeout(timer);
-        alert("❌ COLLAPSE!");
+    for (var i = 0; i < glue.length; i++) {
+      if (glue[i].position.y > canvas.height - 50) {
+        showResult(false);
       }
     }
   });
 }
 
-// Break spaghetti under stress
+// Break under stress
 function checkBreakage() {
   for (var i = constraints.length - 1; i >= 0; i--) {
     var c = constraints[i];
@@ -274,10 +242,10 @@ function checkBreakage() {
   }
 }
 
-// Score
+// ✅ Score (single clean version — no duplicates)
 function updateScore() {
   var highest = canvas.height;
-  var allBodies = spaghetti.concat(marshmallows);
+  var allBodies = spaghetti.concat(glue);
 
   for (var i = 0; i < allBodies.length; i++) {
     if (allBodies[i].position.y < highest) {
@@ -289,7 +257,15 @@ function updateScore() {
   scoreEl.textContent = "Score: " + score;
 }
 
+// UI result (no alerts)
+function showResult(success) {
+  var overlay = document.getElementById("overlay");
+  var text = document.getElementById("resultText");
+
+  overlay.style.display = "flex";
+  text.textContent = success ? "✅ SUCCESS!" : "❌ COLLAPSE!";
+}
+
+// Start
 initGame();
-
-console.log("✅ FULL CHALLENGE MODE ACTIVE");
-
+``
