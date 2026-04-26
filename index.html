@@ -5,18 +5,11 @@
   <title>Spaghetti Tower</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <!-- Matter.js -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.20.0/matter.min.js"></script>
-
   <style>
     body {
       margin: 0;
       font-family: Arial, sans-serif;
       background: #f4f4f4;
-    }
-
-    canvas {
-      display: block;
     }
 
     #hud {
@@ -36,20 +29,28 @@
       padding: 6px 10px;
       cursor: pointer;
     }
+
+    #status {
+      margin-top: 8px;
+      font-size: 13px;
+      color: #333;
+      min-height: 20px;
+    }
   </style>
 </head>
 <body>
 
   <div id="hud">
-    <div>Mode: <strong id="mode">Spaghetti</strong></div>
+    <div>Mode: <strong id="mode">spaghetti</strong></div>
+    <div>Rotation: <strong id="rotation">0</strong>°</div>
+
     <button id="toggle">Switch material</button>
     <button id="rotate">Rotate</button>
     <button id="reset">Reset</button>
+
+    <div id="status">Ready</div>
   </div>
 
-  <canvas id="game"></canvas>
-
-  <!-- Your game logic -->
   <script src="main.js"></script>
 </body>
 </html>
