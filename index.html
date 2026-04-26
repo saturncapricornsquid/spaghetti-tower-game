@@ -5,6 +5,7 @@
   <title>Spaghetti Tower</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
+  <!-- Matter.js -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.20.0/matter.min.js"></script>
 
   <style>
@@ -31,17 +32,6 @@
       padding: 6px 10px;
       cursor: pointer;
     }
-
-    #status {
-      margin-top: 8px;
-      font-size: 13px;
-      color: #333;
-      min-height: 20px;
-    }
-
-    canvas {
-      display: block;
-    }
   </style>
 </head>
 <body>
@@ -50,15 +40,15 @@
     <div>Mode: <strong id="mode">spaghetti</strong></div>
     <div>Rotation: <strong id="rotation">0</strong>°</div>
 
+    <!-- ✅ ID MATCHES JS -->
     <button id="toggle">Switch material</button>
     <button id="rotate">Rotate</button>
     <button id="reset">Reset</button>
-
-    <div id="status">Ready</div>
   </div>
 
   <canvas id="game"></canvas>
 
+  <!-- Game code -->
   <script src="main.js"></script>
 </body>
 </html>
