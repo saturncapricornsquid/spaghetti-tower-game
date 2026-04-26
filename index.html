@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Spaghetti Tower Challenge</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+
+  <!-- Matter.js physics engine -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.20.0/matter.min.js"></script>
+
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #f4f4f4;
+    }
+    #hud {
+      position: fixed;
+      top: 10px;
+      left: 10px;
+      background: white;
+      padding: 10px 14px;
+      border-radius: 6px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+    }
+    canvas {
+      display: block;
+    }
+  </style>
+</head>
+<body>
+
+  <div id="hud">
+    <div>⏱️ Time: <span id="time">18:00</span></div>
+    <div>🍝 Spaghetti left: <span id="count">20</span></div>
+    <button id="add">Add spaghetti</button>
+  </div>
+
+  <canvas id="game"></canvas>
+
+  <script src="main.js"></script>
+</body>
+</html>
+``
