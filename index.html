@@ -1,11 +1,8 @@
 <!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8"><html lang="en">
   <title>Spaghetti Tower Challenge</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <!-- Matter.js -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.20.0/matter.min.js"></script>
 
   <style>
@@ -29,40 +26,66 @@
     }
 
     button {
-      display: block;
-      margin: 6px 0;
-      padding: 6px 10px;
-      cursor: pointer;
       width: 100%;
+      margin: 6px 0;
+      padding: 6px;
+      cursor: pointer;
     }
 
-    #score {
+    #score, #timer {
       margin-top: 8px;
       font-weight: bold;
+    }
+
+    /* Overlay */
+    #overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.6);
+      display: none;
+      justify-content: centre;
+      align-items: centre;
+      color: white;
+      font-size: 24px;
+      flex-direction: column;
+      z-index: 20;
+    }
+
+    #overlay button {
+      margin-top: 20px;
+      font-size: 18px;
+      padding: 10px;
     }
   </style>
 </head>
 
 <body>
 
-  <div id="hud">
-    <div>Mode: <strong id="mode">spaghetti</strong></div>
-    <div>Rotation: <strong id="rotation">0</strong> deg</div>
+<div id="hud">
+  <div>Mode: <strong id="mode">spaghetti</strong></div>
+  <div>Rotation: <strong id="rotation">0</strong> deg</div>
 
-    <button id="toggle">Switch material</button>
-    <button id="rotate">Rotate</button>
-    <button id="reset">Reset</button>
+  <button id="toggle">Switch to glue</button>
+  <button id="rotate">Rotate</button>
+  <button id="reset">Reset</button>
 
-    <div id="score">Score: 0</div>
+  <div id="score">Score: 0</div>
+  <div id="timer">Timer: --</div>
 
-    <div style="font-size:12px;margin-top:8px;">
-      Press <b>T</b> for final test
-    </div>
+  <div style="font-size:12px;margin-top:8px;">
+    Press <b>T</b> for final test
   </div>
+</div>
 
-  <canvas id="game"></canvas>
+<canvas id="game"></canvas>
 
-  <script src="main.js"></script>
+<div id="overlay">
+  <div id="resultText"></div>
+  <button onclick="location.reload()">Restart</button>
+</div>
+
+<script src="main.js"></script>
 
 </body>
 </html>
+<head>
