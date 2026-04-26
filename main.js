@@ -1,8 +1,6 @@
 const { Engine, Render, Runner, World, Bodies, Events } = Matter;
 
-/* =========================
-   DOM references
-========================= */
+/* DOM references */
 const canvas = document.getElementById("game");
 const timeEl = document.getElementById("time");
 const countEl = document.getElementById("count");
@@ -11,16 +9,12 @@ const statusEl = document.getElementById("status");
 const addBtn = document.getElementById("add");
 const resetBtn = document.getElementById("reset");
 
-/* =========================
-   Constants
-========================= */
+/* Constants */
 const GROUND_HEIGHT = 80;
 const HUD_SAFE_WIDTH = 320;
 const HUD_SAFE_HEIGHT = 220;
 
-/* =========================
-   Game state
-========================= */
+/* Game state */
 let engine;
 let render;
 let runner;
@@ -40,9 +34,7 @@ let stabilityInterval = null;
 let stabilityRemaining = 10;
 let score = 0;
 
-/* =========================
-   Init
-========================= */
+/* Init */
 function initGame() {
   clearTimers();
 
@@ -51,7 +43,7 @@ function initGame() {
   spaghettiLeft = 20;
   marshmallowPlaced = false;
   gameEnded = false;
-  timeLeft = 30; // testing value
+  timeLeft = 30;
   stabilityRemaining = 10;
   score = 0;
 
@@ -60,11 +52,6 @@ function initGame() {
 
   if (render) {
     Render.stop(render);
-    if (render.canvas && render.canvas.parentNode) {
-      // clear previous frame buffer only
-      const ctx = render.canvas.getContext("2d");
-      ctx.clearRect(0, 0, render.canvas.width, render.canvas.height);
-    }
   }
 
   if (runner) {
@@ -99,9 +86,7 @@ function initGame() {
   startCountdown();
 }
 
-/* =========================
-   World setup
-========================= */
+/* World setup */
 function createWorldBounds() {
   ground = Bodies.rectangle(
     canvas.width / 2,
@@ -120,10 +105,7 @@ function createWorldBounds() {
     canvas.height / 2,
     50,
     canvas.height,
-    {
-      isStatic: true,
-      render: { visible: false }
-    }
+    { isStatic: true, render: { visible: false } }
   );
 
   rightWall = Bodies.rectangle(
@@ -131,18 +113,13 @@ function createWorldBounds() {
     canvas.height / 2,
     50,
     canvas.height,
-    {
-      isStatic: true,
-      render: { visible: false }
-    }
+    { isStatic: true, render: { visible: false } }
   );
 
   World.add(engine.world, [ground, leftWall, rightWall]);
 }
 
-/* =========================
-   Factories
-========================= */
+/* Factories */
 function createSpaghetti(x, y) {
   return Bodies.rectangle(x, y, 140, 6, {
     label: "spaghetti",
@@ -163,9 +140,7 @@ function createMarshmallow(x, y) {
   });
 }
 
-/* =========================
-   Placement helpers
-========================= */
+/* Placement helpers */
 function placeSpaghetti(x, y) {
   if (gameEnded) return;
   if (timeLeft <= 0) {
@@ -184,7 +159,7 @@ function placeSpaghetti(x, y) {
   spaghettiLeft--;
   updateScore();
   updateHud();
-  statusEl.innerText = "Spaghetti placed.";
+  statusEl.innerText = "Spaghetti placed. Keep building.";
 }
 
 function placeMarshmallow(x, y) {
@@ -203,11 +178,8 @@ function placeMarshmallow(x, y) {
   startStabilityCheck();
 }
 
-/* =========================
-   Input wiring
-========================= */
+/* Input wiring */
 function attachEvents() {
-  // Button: always place one spaghetti near the top centre during build phase.
   addBtn.onclick = () => {
     if (gameEnded) return;
 
@@ -229,7 +201,6 @@ function attachEvents() {
     const x = event.clientX - rect.left;
     const y = event.clientY - rect.top;
 
-    // ignore clicks in the HUD zone
     if (x < HUD_SAFE_WIDTH && y < HUD_SAFE_HEIGHT) return;
 
     if (timeLeft > 0) {
@@ -251,9 +222,7 @@ function attachEvents() {
   });
 }
 
-/* =========================
-   Timer
-========================= */
+/* Timer */
 function startCountdown() {
   countdownInterval = setInterval(() => {
     if (gameEnded) return;
@@ -292,9 +261,7 @@ function clearTimers() {
   if (stabilityInterval) clearInterval(stabilityInterval);
 }
 
-/* =========================
-   Score
-========================= */
+/* Score */
 function updateScore() {
   if (spaghettiBodies.length === 0) {
     score = 0;
@@ -323,15 +290,11 @@ function updateHud() {
   scoreEl.innerText = String(score);
 }
 
-/* =========================
-   Fail / success
-========================= */
+/* Fail / success */
 function hasTowerFailed() {
   if (!marshmallowBody) return false;
 
   const floorLine = canvas.height - GROUND_HEIGHT - 5;
-
-  // fail if marshmallow drops to floor zone
   if (marshmallowBody.position.y >= floorLine) return true;
 
   return false;
@@ -352,14 +315,10 @@ function endGame(success) {
   }
 }
 
-/* =========================
-   Resize
-========================= */
+/* Resize */
 window.addEventListener("resize", () => {
   initGame();
 });
 
-/* =========================
-   Start
-========================= */
+/* Start */
 initGame();
