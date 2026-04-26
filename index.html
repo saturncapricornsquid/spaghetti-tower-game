@@ -19,7 +19,7 @@
       position: fixed;
       top: 10px;
       left: 10px;
-      width: 290px;
+      width: 320px;
       background: white;
       padding: 12px 16px;
       border-radius: 8px;
@@ -47,7 +47,7 @@
       margin-top: 8px;
       font-size: 13px;
       color: #333;
-      min-height: 36px;
+      min-height: 40px;
     }
 
     canvas {
@@ -60,8 +60,9 @@
     <div>⏱️ Time: <span id="time">00:30</span></div>
     <div>🍝 Spaghetti left: <span id="count">20</span></div>
     <div>🏆 Score: <span id="score">0</span></div>
-    <div id="status">Click in the grey area or press “Add spaghetti”.</div>
-    <button id="add">Add spaghetti</button>
+    <div>📐 Rotation: <span id="rotation">0°</span></div>
+    <div id="status">Move your mouse in the grey area. Press R to rotate. Click to place spaghetti.</div>
+    <button id="add">Add spaghetti (centre)</button>
     <button id="reset">Reset game</button>
   </div>
 
@@ -69,4 +70,3 @@
 
   <script src="main.js"></script>
 </body>
-</html>
