@@ -31,7 +31,7 @@ const changeTeamBtn = document.getElementById("changeTeam");
 
 /* Constants */
 const GROUND_HEIGHT = 80;
-const ROT_STEP = Math.PI / 12;
+const ROT_STEP = Math.PI / 12; // 15 degrees
 const SPAGHETTI_LENGTH = 140;
 const SPAGHETTI_THICKNESS = 6;
 const HUD_SAFE_WIDTH = 450;
@@ -50,7 +50,7 @@ let lastBuilder = "";
 
 let spaghettiLeft = 20;
 let score = 0;
-let timeLeft = 30;
+let timeLeft = 30; // change to 18 * 60 later if you want
 let rotation = 0;
 let gameEnded = false;
 let marshmallowPlaced = false;
@@ -160,15 +160,21 @@ function createWorld() {
     }
   );
 
-  const leftWall = Bodies.rectangle(-25, canvas.height / 2, 50, canvas.height, {
-    isStatic: true,
-    render: { visible: false }
-  });
+  const leftWall = Bodies.rectangle(
+    -25,
+    canvas.height / 2,
+    50,
+    canvas.height,
+    { isStatic: true, render: { visible: false } }
+  );
 
-  const rightWall = Bodies.rectangle(canvas.width + 25, canvas.height / 2, 50, canvas.height, {
-    isStatic: true,
-    render: { visible: false }
-  });
+  const rightWall = Bodies.rectangle(
+    canvas.width + 25,
+    canvas.height / 2,
+    50,
+    canvas.height,
+    { isStatic: true, render: { visible: false } }
+  );
 
   World.add(engine.world, [ground, leftWall, rightWall]);
 }
@@ -494,4 +500,3 @@ window.addEventListener("resize", () => {
     initGame();
   }
 });
-``
