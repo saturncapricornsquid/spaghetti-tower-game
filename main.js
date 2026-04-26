@@ -4,7 +4,6 @@ const rotationEl = document.getElementById("rotation");
 const toggleBtn = document.getElementById("toggle");
 const rotateBtn = document.getElementById("rotate");
 const resetBtn = document.getElementById("reset");
-const statusEl = document.getElementById("status");
 const canvas = document.getElementById("game");
 
 // Matter.js
@@ -45,18 +44,16 @@ World.add(engine.world, ground);
 Render.run(render);
 Runner.run(runner, engine);
 
-// Buttons
+// ✅ Buttons now all work
 toggleBtn.addEventListener("click", () => {
   mode = mode === "spaghetti" ? "marshmallow" : "spaghetti";
   modeEl.textContent = mode;
-  statusEl.textContent = `Mode switched to ${mode}`;
   console.log("Mode:", mode);
 });
 
 rotateBtn.addEventListener("click", () => {
   rotation += 15;
   rotationEl.textContent = rotation;
-  statusEl.textContent = `Rotation is now ${rotation}°`;
   console.log("Rotation:", rotation);
 });
 
@@ -65,9 +62,7 @@ resetBtn.addEventListener("click", () => {
   rotation = 0;
   modeEl.textContent = mode;
   rotationEl.textContent = rotation;
-  statusEl.textContent = "Reset complete";
   console.log("Reset");
 });
 
-console.log("✅ main.js loaded successfully");
-``
+console.log("✅ main.js loaded and running");
