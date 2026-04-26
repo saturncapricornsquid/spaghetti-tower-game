@@ -1,4 +1,6 @@
-const { Engine, Render, Runner, World, Bodies, Body, Events } = Matter;const { Engine, Render, Runner, document.getElementById("count");
+const { Engine, Render, Runner, World, Bodies, Body, Events } = Matter;const { Engine, Render, Runner, World, Bodies,Id("game");
+const timeEl = document.getElementById("time");
+const countEl = document.getElementById("count");
 const scoreEl = document.getElementById("score");
 const rotationEl = document.getElementById("rotation");
 const currentPlayerEl = document.getElementById("currentPlayer");
@@ -24,9 +26,7 @@ const finalBuilder = document.getElementById("finalBuilder");
 const playAgainBtn = document.getElementById("playAgain");
 const changeTeamBtn = document.getElementById("changeTeam");
 
-/* =========================
-   Constants
-========================= */
+/* Constants */
 const GROUND_HEIGHT = 80;
 const ROT_STEP = Math.PI / 12; // 15 degrees
 const SPAGHETTI_LENGTH = 140;
@@ -34,13 +34,10 @@ const SPAGHETTI_THICKNESS = 6;
 const HUD_SAFE_WIDTH = 450;
 const HUD_SAFE_HEIGHT = 320;
 
-/* =========================
-   Game state
-========================= */
+/* Game state */
 let engine = null;
 let render = null;
 let runner = null;
-let ground = null;
 let spaghettiBodies = [];
 let marshmallowBody = null;
 
@@ -50,7 +47,7 @@ let lastBuilder = "";
 
 let spaghettiLeft = 20;
 let score = 0;
-let timeLeft = 30; // change to 18 * 60 later
+let timeLeft = 30;
 let rotation = 0;
 let gameEnded = false;
 let marshmallowPlaced = false;
@@ -62,9 +59,7 @@ let previewY = window.innerHeight / 2;
 
 let keyboardHandlerAttached = false;
 
-/* =========================
-   Setup / start
-========================= */
+/* Start setup */
 startGameBtn.onclick = () => {
   const enteredNames = playerInputs
     .map(input => input.value.trim())
@@ -90,9 +85,7 @@ changeTeamBtn.onclick = () => {
   setupPanel.style.display = "flex";
 };
 
-/* =========================
-   Initialisation
-========================= */
+/* Init game */
 function initGame() {
   stopTimers();
   stopMatter();
@@ -102,7 +95,7 @@ function initGame() {
 
   spaghettiLeft = 20;
   score = 0;
-  timeLeft = 30; // change later if needed
+  timeLeft = 30;
   rotation = 0;
   gameEnded = false;
   marshmallowPlaced = false;
@@ -151,11 +144,9 @@ function initGame() {
   startTimer();
 }
 
-/* =========================
-   Matter world
-========================= */
+/* Matter world */
 function createWorld() {
-  ground = Bodies.rectangle(
+  const ground = Bodies.rectangle(
     canvas.width / 2,
     canvas.height - GROUND_HEIGHT / 2,
     canvas.width,
@@ -198,23 +189,15 @@ function stopMatter() {
   engine = null;
 }
 
-/* =========================
-   Factories
-========================= */
+/* Factories */
 function createSpaghetti(x, y, angle = 0) {
-  const stick = Bodies.rectangle(
-    x,
-    y,
-    SPAGHETTI_LENGTH,
-    SPAGHETTI_THICKNESS,
-    {
-      label: "spaghetti",
-      density: 0.0004,
-      friction: 0.4,
-      restitution: 0.1,
-      render: { fillStyle: "#f4d03f" }
-    }
-  );
+  const stick = Bodies.rectangle(x, y, SPAGHETTI_LENGTH, SPAGHETTI_THICKNESS, {
+    label: "spaghetti",
+    density: 0.0004,
+    friction: 0.4,
+    restitution: 0.1,
+    render: { fillStyle: "#f4d03f" }
+  });
 
   Body.setAngle(stick, angle);
   return stick;
@@ -230,9 +213,7 @@ function createMarshmallow(x, y) {
   });
 }
 
-/* =========================
-   Turn-taking
-========================= */
+/* Turn-taking */
 function updateCurrentPlayer() {
   currentPlayerEl.innerText = players[currentPlayerIndex] || "—";
 }
@@ -243,9 +224,7 @@ function advanceTurn() {
   updateCurrentPlayer();
 }
 
-/* =========================
-   Placement helpers
-========================= */
+/* Placement */
 function placeSpaghetti(x, y, angle = rotation) {
   if (gameEnded) return;
 
@@ -299,9 +278,7 @@ function placeMarshmallow(x, y) {
   startStabilityCheck();
 }
 
-/* =========================
-   Rotation
-========================= */
+/* Rotation */
 function rotateNextPiece(delta) {
   if (gameEnded) return;
   if (timeLeft <= 0) return;
@@ -317,9 +294,7 @@ function normalisedDegrees(angleRadians) {
   return ((Math.round((angleRadians * 180) / Math.PI) % 360) + 360) % 360;
 }
 
-/* =========================
-   Input handlers
-========================= */
+/* Input */
 function attachCanvasHandlers() {
   canvas.onmousemove = (event) => {
     const rect = canvas.getBoundingClientRect();
@@ -334,7 +309,6 @@ function attachCanvasHandlers() {
     const x = event.clientX - rect.left;
     const y = event.clientY - rect.top;
 
-    /* Ignore clicks inside the HUD block */
     if (x < HUD_SAFE_WIDTH && y < HUD_SAFE_HEIGHT) return;
 
     if (timeLeft > 0) {
@@ -383,9 +357,7 @@ function attachKeyboardHandlerOnce() {
   });
 }
 
-/* =========================
-   Matter event handlers
-========================= */
+/* Matter events */
 function attachEngineHandlers() {
   Events.on(engine, "afterUpdate", () => {
     if (gameEnded) return;
@@ -424,9 +396,7 @@ function attachPreviewRenderer() {
   });
 }
 
-/* =========================
-   Timer / round flow
-========================= */
+/* Timer / round flow */
 function startTimer() {
   countdownInterval = setInterval(() => {
     if (gameEnded) return;
@@ -474,9 +444,7 @@ function stopTimers() {
   }
 }
 
-/* =========================
-   Score / HUD
-========================= */
+/* Score / HUD */
 function updateScore() {
   if (spaghettiBodies.length === 0) {
     score = 0;
@@ -504,9 +472,7 @@ function updateHud() {
   updateCurrentPlayer();
 }
 
-/* =========================
-   Fail / success
-========================= */
+/* Success / failure */
 function hasTowerFailed() {
   if (!marshmallowBody) return false;
 
@@ -540,17 +506,11 @@ function hideFinalPanel() {
   finalPanel.classList.add("hidden");
 }
 
-/* =========================
-   Resize
-========================= */
+/* Resize */
 window.addEventListener("resize", () => {
   if (players.length > 0 && setupPanel.style.display === "none") {
     initGame();
   }
 });
 
-/* =========================
-   DOM references
-========================= */
-const canvas = document.getElementById("game");
-const timeEl = document.getElementById("time");
+/* DOM */
