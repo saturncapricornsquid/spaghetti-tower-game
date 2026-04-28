@@ -10,9 +10,8 @@
       --vt-red: #e60000;
       --vt-dark: #1f1f1f;
       --vt-charcoal: #2c2c2c;
-      --vt-light: #f5f5f5;
       --vt-accent: #8f2bd1;
-      --panel: rgba(255, 255, 255, 0.96);
+      --panel: rgba(255,255,255,0.96);
       --shadow: 0 10px 30px rgba(0,0,0,0.18);
     }
 
@@ -21,248 +20,107 @@
     body {
       margin: 0;
       overflow: hidden;
-      background:
-        radial-gradient(circle at top right, rgba(143, 43, 209, 0.08), transparent 22%),
-        linear-gradient(180deg, #fafafa 0%, #f3f3f3 100%);
+      background: linear-gradient(180deg, #fafafa, #f3f3f3);
       font-family: Arial, Helvetica, sans-serif;
       color: var(--vt-dark);
     }
 
-    canvas {
-      display: block;
-      cursor: crosshair;
-    }
+    canvas { display: block; }
 
     .brand-bar {
-      position: absolute;
+      position: fixed;
       top: 0;
       left: 0;
       right: 0;
+      height: 56px;
       display: flex;
-      align-items: center;
       justify-content: space-between;
-      padding: 10px 16px;
-      background: linear-gradient(90deg, var(--vt-red) 0%, #b80000 60%, var(--vt-accent) 100%);
-      color: white;
-      z-index: 20;
-      box-shadow: var(--shadow);
-    }
-
-    .brand-title {
-      font-weight: 700;
-      letter-spacing: 0.2px;
-      display: flex;
       align-items: center;
-      gap: 10px;
-      font-size: 16px;
-    }
-
-    .brand-badge {
-      background: rgba(255,255,255,0.16);
-      border: 1px solid rgba(255,255,255,0.25);
-      border-radius: 999px;
-      padding: 4px 10px;
-      font-size: 12px;
-      font-weight: 700;
-      white-space: nowrap;
+      padding: 0 16px;
+      background: linear-gradient(90deg, var(--vt-red), var(--vt-accent));
+      color: white;
+      z-index: 30;
     }
 
     .hud {
       position: absolute;
-      top: 64px;
+      top: 70px;
       left: 12px;
-      background: rgba(24, 24, 24, 0.86);
+      background: rgba(24,24,24,0.86);
       color: white;
       padding: 12px 14px;
       border-radius: 12px;
       font-size: 14px;
       z-index: 10;
-      line-height: 1.45;
-      min-width: 220px;
-      box-shadow: var(--shadow);
+      min-width: 200px;
     }
 
     .hud.right {
-      left: auto;
       right: 12px;
+      left: auto;
       text-align: right;
-      min-width: 160px;
-    }
-
-    .instructions {
-      position: absolute;
-      left: 50%;
-      bottom: 12px;
-      transform: translateX(-50%);
-      background: var(--panel);
-      color: var(--vt-dark);
-      padding: 12px 16px;
-      border-radius: 14px;
-      box-shadow: var(--shadow);
-      text-align: center;
-      font-size: 13px;
-      z-index: 10;
-      width: min(900px, calc(100vw - 24px));
     }
 
     .controls {
       position: absolute;
-      top: 152px;
+      top: 150px;
       right: 12px;
-      z-index: 10;
+      width: 240px;
       display: flex;
       flex-direction: column;
-      gap: 8px;
-      width: 220px;
+      gap: 10px;
+      z-index: 10;
     }
 
     .panel {
       background: var(--panel);
-      border-radius: 14px;
       padding: 12px;
+      border-radius: 14px;
       box-shadow: var(--shadow);
       font-size: 13px;
     }
 
-    .panel h3 {
-      margin: 0 0 8px;
-      font-size: 14px;
-      color: var(--vt-dark);
-    }
-
-    .panel p {
-      margin: 0;
-      color: #555;
-      line-height: 1.4;
-    }
-
-    select, input, textarea, button { font: inherit; }
-
-    input, select, textarea {
-      width: 100%;
-      border: 1px solid #d8d8d8;
-      border-radius: 10px;
-      padding: 10px 12px;
-      background: white;
-      color: var(--vt-dark);
-    }
-
-    textarea {
-      min-height: 82px;
-      resize: vertical;
-    }
-
     .btn-row {
       display: flex;
-      gap: 8px;
       flex-wrap: wrap;
+      gap: 8px;
     }
 
     button {
       border: 0;
       border-radius: 999px;
-      padding: 10px 14px;
-      background: var(--vt-red);
-      color: white;
+      padding: 8px 12px;
       cursor: pointer;
       font-weight: 700;
-      transition: transform 0.12s ease, opacity 0.12s ease;
+      background: var(--vt-red);
+      color: white;
     }
 
     button.secondary { background: var(--vt-charcoal); }
-    button.ghost { background: #ececec; color: var(--vt-dark); }
-    button:hover { transform: translateY(-1px); }
-    button:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+    button.ghost { background: #eee; color: #333; }
 
-    .modal {
-      position: fixed;
-      inset: 0;
-      background: rgba(0,0,0,0.55);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      z-index: 50;
-      padding: 20px;
-    }
-
-    .card {
-      width: min(760px, 100%);
-      background: white;
-      border-radius: 18px;
+    .instructions {
+      position: absolute;
+      top: 76px;
+      left: 50%;
+      transform: translateX(-50%);
+      max-width: 900px;
+      background: var(--panel);
+      padding: 12px 16px;
+      border-radius: 14px;
       box-shadow: var(--shadow);
-      overflow: hidden;
-    }
-
-    .card-header {
-      padding: 18px 20px;
-      background: linear-gradient(90deg, var(--vt-red) 0%, var(--vt-accent) 100%);
-      color: white;
-    }
-
-    .card-header h1,
-    .card-header h2 {
-      margin: 0;
-      font-size: 22px;
-    }
-
-    .card-body {
-      padding: 18px 20px 20px;
-      display: grid;
-      gap: 14px;
-    }
-
-    .muted { color: #666; font-size: 13px; }
-
-    .setup-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-      gap: 12px;
-    }
-
-    .leaderboard-list {
-      margin: 0;
-      padding-left: 22px;
-      line-height: 1.6;
-    }
-
-    .leaderboard-list li span {
-      color: #666;
-      font-size: 12px;
-    }
-
-    .two-col {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 14px;
-    }
-
-    .callout {
-      background: #fff6f6;
-      border: 1px solid #ffd0d0;
-      border-radius: 12px;
-      padding: 12px;
-      color: #6a1a1a;
       font-size: 13px;
-    }
-
-    @media (max-width: 900px) {
-      .controls {
-        width: min(280px, calc(100vw - 24px));
-        top: auto;
-        bottom: 142px;
-      }
-      .two-col { grid-template-columns: 1fr; }
-      .hud { max-width: calc(100vw - 24px); }
+      pointer-events: none;
+      text-align: centre;
+      z-index: 9;
     }
   </style>
 </head>
+
 <body>
   <div class="brand-bar">
-    <div class="brand-title">
-      <span>🍝 VodafoneThree Marshmallow Challenge</span>
-      <span class="brand-badge">Online Team Build</span>
-    </div>
-    <div id="brandTeamLabel" class="brand-badge">Team: —</div>
+    <strong>VodafoneThree Marshmallow Challenge</strong>
+    <span id="brandTeamLabel">Team: —</span>
   </div>
 
   <div class="hud" id="status"></div>
@@ -270,65 +128,39 @@
 
   <div class="controls">
     <div class="panel">
-      <h3>Facilitator controls</h3>
+      <strong>Facilitator controls</strong><br><br>
       <div class="btn-row">
-        <button id="pauseBtn" class="secondary" type="button">Pause</button>
-        <button id="resetBtn" class="ghost" type="button">Reset run</button>
+        <button id="glueBtn" class="secondary">Glue (tape / string)</button>
+        <button id="pauseBtn" class="secondary">Pause</button>
+        <button id="resetBtn" class="ghost">Reset run</button>
       </div>
-      <p style="margin-top:8px;">Leaderboard is saved in this browser so one facilitator can run multiple teams in sequence.</p>
     </div>
 
     <div class="panel">
-      <h3>Current team</h3>
+      <strong>Current team</strong><br>
       <div id="currentTeamSummary">Not started yet.</div>
     </div>
   </div>
 
   <div class="instructions">
-    ⏱ You have <strong>10 minutes</strong> to build the tallest free-standing tower.<br>
-    Click to place spaghetti (maximum of 20). Click one piece and then another to connect them with tape/string.<br>
-    After all 20 pieces are used, click an empty space to place the marshmallow. It must finish <strong>on top</strong>.
+    <strong>Marshmallow Challenge – Instructions</strong><br><br>
+
+    You have <strong>10 minutes</strong> to build the tallest
+    <strong>free‑standing</strong> structure.<br><br>
+
+    • Use up to <strong>20 spaghetti sticks</strong><br>
+    • Use as much or as little <strong>tape (glue)</strong> and <strong>string</strong> as you wish<br>
+    • You may <strong>break spaghetti</strong> and reposition pieces<br>
+    • The <strong>entire marshmallow must be on top</strong><br>
+    • The structure must stand <strong>without support</strong><br><br>
+
+    When the timer ends, <strong>hands off</strong>.
+    Any structure being touched or supported is disqualified.
   </div>
 
   <canvas id="game"></canvas>
 
-  <div class="modal" id="setupModal">
-    <div class="card">
-      <div class="card-header">
-        <h1>Set up the next team</h1>
-      </div>
-      <div class="card-body">
-        <p>Classic rules: 20 spaghetti sticks, tape/string, one marshmallow on top, free-standing structure.</p>
-
-        <div class="setup-grid">
-          <label>
-            Team name
-            <input id="teamNameInput" type="text" maxlength="60" placeholder="e.g. Team Dorset" />
-          </label>
-          <label>
-            Team size
-            <input id="teamSizeInput" type="number" min="1" max="20" value="4" />
-          </label>
-        </div>
-
-        <div class="callout">
-          Suggested online facilitation: one person drives the mouse while the rest of the team directs the build and tests ideas out loud.
-        </div>
-
-        <div class="btn-row">
-          <button id="startTeamBtn" type="button">Start team round</button>
-          <button id="clearLeaderboardBtn" class="ghost" type="button">Clear leaderboard</button>
-        </div>
-
-        <div>
-          <h3 style="margin:6px 0 8px;">Saved leaderboard</h3>
-          <ol id="setupLeaderboard" class="leaderboard-list"></ol>
-          <div id="setupLeaderboardEmpty" class="muted">No team scores saved yet.</div>
-        </div>
-      </div>
-    </div>
-  </div>
-
+  <!-- ✅ CORRECT Matter.js include -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
   <script src="main.js"></script>
 </body>
