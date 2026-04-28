@@ -16,9 +16,7 @@
       --shadow: 0 10px 30px rgba(0,0,0,0.18);
     }
 
-    * {
-      box-sizing: border-box;
-    }
+    * { box-sizing: border-box; }
 
     body {
       margin: 0;
@@ -138,9 +136,7 @@
       line-height: 1.4;
     }
 
-    select, input, textarea, button {
-      font: inherit;
-    }
+    select, input, textarea, button { font: inherit; }
 
     input, select, textarea {
       width: 100%;
@@ -173,24 +169,10 @@
       transition: transform 0.12s ease, opacity 0.12s ease;
     }
 
-    button.secondary {
-      background: var(--vt-charcoal);
-    }
-
-    button.ghost {
-      background: #ececec;
-      color: var(--vt-dark);
-    }
-
-    button:hover {
-      transform: translateY(-1px);
-    }
-
-    button:disabled {
-      opacity: 0.5;
-      cursor: not-allowed;
-      transform: none;
-    }
+    button.secondary { background: var(--vt-charcoal); }
+    button.ghost { background: #ececec; color: var(--vt-dark); }
+    button:hover { transform: translateY(-1px); }
+    button:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
 
     .modal {
       position: fixed;
@@ -229,10 +211,7 @@
       gap: 14px;
     }
 
-    .muted {
-      color: #666;
-      font-size: 13px;
-    }
+    .muted { color: #666; font-size: 13px; }
 
     .setup-grid {
       display: grid;
@@ -272,14 +251,8 @@
         top: auto;
         bottom: 142px;
       }
-
-      .two-col {
-        grid-template-columns: 1fr;
-      }
-
-      .hud {
-        max-width: calc(100vw - 24px);
-      }
+      .two-col { grid-template-columns: 1fr; }
+      .hud { max-width: calc(100vw - 24px); }
     }
   </style>
 </head>
@@ -325,9 +298,7 @@
         <h1>Set up the next team</h1>
       </div>
       <div class="card-body">
-        <p>
-          Classic rules: 20 spaghetti sticks, tape/string, one marshmallow on top, free-standing structure.
-        </p>
+        <p>Classic rules: 20 spaghetti sticks, tape/string, one marshmallow on top, free-standing structure.</p>
 
         <div class="setup-grid">
           <label>
