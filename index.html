@@ -1,53 +1,103 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en-GB">
 <head>
   <meta charset="UTF-8" />
-  <title>🍝 Spaghetti (Marshmallow) Challenge</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-
+  <title>VodafoneThree Marshmallow Challenge</title>
   <style>
+    :root {
+      --vt-red: #e60000;
+      --vt-dark: #1f1f1f;
+      --vt-charcoal: #2c2c2c;
+      --vt-light: #f5f5f5;
+      --vt-accent: #8f2bd1;
+      --panel: rgba(255, 255, 255, 0.94);
+      --shadow: 0 10px 30px rgba(0,0,0,0.18);
+    }
+
+    * { box-sizing: border-box; }
+
     body {
       margin: 0;
       overflow: hidden;
-      background: #f5f5f5;
-      font-family: Arial, sans-serif;
+      background:
+        radial-gradient(circle at top right, rgba(143, 43, 209, 0.09), transparent 22%),
+        linear-gradient(180deg, #fafafa 0%, #f3f3f3 100%);
+      font-family: Arial, Helvetica, sans-serif;
+      color: var(--vt-dark);
     }
 
-    canvas { display: block; }
+    canvas {
+      display: block;
+      cursor: crosshair;
+    }
+
+    .brand-bar {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      display: flex;
+      align-items: centre;
+      justify-content: space-between;
+      padding: 10px 16px;
+      background: linear-gradient(90deg, var(--vt-red) 0%, #b80000 60%, var(--vt-accent) 100%);
+      color: white;
+      z-index: 20;
+      box-shadow: var(--shadow);
+    }
+
+    .brand-title {
+      font-weight: 700;
+      letter-spacing: 0.2px;
+      display: flex;
+      align-items: centre;
+      gap: 10px;
+      font-size: 16px;
+    }
+
+    .brand-badge {
+      background: rgba(255,255,255,0.16);
+      border: 1px solid rgba(255,255,255,0.25);
+      border-radius: 999px;
+      padding: 4px 10px;
+      font-size: 12px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
 
     .hud {
       position: absolute;
-      top: 10px;
-      left: 10px;
-      background: rgba(0,0,0,0.75);
+      top: 64px;
+      left: 12px;
+      background: rgba(24, 24, 24, 0.86);
       color: white;
-      padding: 10px 14px;
-      border-radius: 8px;
+      padding: 12px 14px;
+      border-radius: 12px;
       font-size: 14px;
       z-index: 10;
-      line-height: 1.4;
+      line-height: 1.45;
+      min-width: 220px;
+      box-shadow: var(--shadow);
     }
 
     .hud.right {
-      right: 10px;
       left: auto;
+      right: 12px;
       text-align: right;
+      min-width: 160px;
     }
 
     .instructions {
       position: absolute;
-      bottom: 10px;
       left: 50%;
+      bottom: 12px;
       transform: translateX(-50%);
-      background: rgba(255,255,255,0.95);
-      padding: 10px 14px;
-      border-radius: 10px;
-      font-size: 13px;
-      max-width: 90%;
+      background: var(--panel);
+      color: var(--vt-dark);
+      padding: 12px 16px;
+      border-radius: 14px;
+      box-shadow: var(--shadow);
       text-align: centre;
+      font-size: 13px;
       z-index: 10;
-    }
-  </style>
-</head>
-
-<body>
