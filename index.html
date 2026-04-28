@@ -101,3 +101,245 @@
       text-align: centre;
       font-size: 13px;
       z-index: 10;
+      width: min(900px, calc(100vw - 24px));
+    }
+
+    .controls {
+      position: absolute;
+      top: 152px;
+      right: 12px;
+      z-index: 10;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      width: 220px;
+    }
+
+    .panel {
+      background: var(--panel);
+      border-radius: 14px;
+      padding: 12px;
+      box-shadow: var(--shadow);
+      font-size: 13px;
+    }
+
+    .panel h3 {
+      margin: 0 0 8px;
+      font-size: 14px;
+      color: var(--vt-dark);
+    }
+
+    .panel p {
+      margin: 0;
+      color: #555;
+      line-height: 1.4;
+    }
+
+    select, input, textarea, button {
+      font: inherit;
+    }
+
+    input, select, textarea {
+      width: 100%;
+      border: 1px solid #d8d8d8;
+      border-radius: 10px;
+      padding: 10px 12px;
+      background: white;
+      color: var(--vt-dark);
+    }
+
+    textarea {
+      min-height: 82px;
+      resize: vertical;
+    }
+
+    .btn-row {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    button {
+      border: 0;
+      border-radius: 999px;
+      padding: 10px 14px;
+      background: var(--vt-red);
+      color: white;
+      cursor: pointer;
+      font-weight: 700;
+      transition: transform 0.12s ease, opacity 0.12s ease;
+    }
+
+    button.secondary {
+      background: var(--vt-charcoal);
+    }
+
+    button.ghost {
+      background: #ececec;
+      color: var(--vt-dark);
+    }
+
+    button:hover { transform: translateY(-1px); }
+    button:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+    .modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.55);
+      display: flex;
+      align-items: centre;
+      justify-content: centre;
+      z-index: 50;
+      padding: 20px;
+    }
+
+    .card {
+      width: min(760px, 100%);
+      background: white;
+      border-radius: 18px;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .card-header {
+      padding: 18px 20px;
+      background: linear-gradient(90deg, var(--vt-red) 0%, var(--vt-accent) 100%);
+      color: white;
+    }
+
+    .card-header h1,
+    .card-header h2 {
+      margin: 0;
+      font-size: 22px;
+    }
+
+    .card-body {
+      padding: 18px 20px 20px;
+      display: grid;
+      gap: 14px;
+    }
+
+    .muted { color: #666; font-size: 13px; }
+
+    .setup-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 12px;
+    }
+
+    .leaderboard-list {
+      margin: 0;
+      padding-left: 22px;
+      line-height: 1.6;
+    }
+
+    .leaderboard-list li span {
+      color: #666;
+      font-size: 12px;
+    }
+
+    .two-col {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
+
+    .callout {
+      background: #fff6f6;
+      border: 1px solid #ffd0d0;
+      border-radius: 12px;
+      padding: 12px;
+      color: #6a1a1a;
+      font-size: 13px;
+    }
+
+    @media (max-width: 900px) {
+      .controls {
+        width: min(280px, calc(100vw - 24px));
+        top: auto;
+        bottom: 142px;
+      }
+      .two-col { grid-template-columns: 1fr; }
+      .hud { max-width: calc(100vw - 24px); }
+    }
+  </style>
+</head>
+<body>
+  <div class="brand-bar">
+    <div class="brand-title">
+      <span>🍝 VodafoneThree Marshmallow Challenge</span>
+      <span class="brand-badge">Online Team Build</span>
+    </div>
+    <div id="brandTeamLabel" class="brand-badge">Team: —</div>
+  </div>
+
+  <div class="hud" id="status"></div>
+  <div class="hud right" id="timer"></div>
+
+  <div class="controls">
+    <div class="panel">
+      <h3>Facilitator controls</h3>
+      <div class="btn-row">
+        <button id="pauseBtn" class="secondary" type="button">Pause</button>
+        <button id="resetBtn" class="ghost" type="button">Reset run</button>
+      </div>
+      <p style="margin-top:8px;">Leaderboard is saved in this browser so one facilitator can run multiple teams in sequence.</p>
+    </div>
+    <div class="panel">
+      <h3>Current team</h3>
+      <div id="currentTeamSummary">Not started yet.</div>
+    </div>
+  </div>
+
+  <div class="instructions">
+    ⏱ You have <strong>10 minutes</strong> to build the tallest free-standing tower.<br>
+    Click to place spaghetti (maximum of 20). Click one piece and then another to connect them with tape/string.<br>
+    After all 20 pieces are used, click an empty space to place the marshmallow. It must finish <strong>on top</strong>.
+  </div>
+
+  <canvas id="game"></canvas>
+
+  <div class="modal" id="setupModal">
+    <div class="card">
+      <div class="card-header">
+        <h1>Set up the next team</h1>
+      </div>
+      <div class="card-body">
+        <p>
+          Classic rules: 20 spaghetti sticks, tape/string, one marshmallow on top, free-standing structure. Use one facilitator browser to run teams one after another.
+        </p>
+
+        <div class="setup-grid">
+          <label>
+            Team name
+            <input id="teamNameInput" type="text" maxlength="60" placeholder="e.g. Team Dorset" />
+          </label>
+          <label>
+            Team size
+            <input id="teamSizeInput" type="number" min="1" max="20" value="4" />
+          </label>
+        </div>
+
+        <div class="callout">
+          Suggested online facilitation: one person drives the mouse while the rest of the team directs the build and tests ideas out loud.
+        </div>
+
+        <div class="btn-row">
+          <button id="startTeamBtn" type="button">Start team round</button>
+          <button id="clearLeaderboardBtn" class="ghost" type="button">Clear leaderboard</button>
+        </div>
+
+        <div>
+          <h3 style="margin:6px 0 8px;">Saved leaderboard</h3>
+          <ol id="setupLeaderboard" class="leaderboard-list"></ol>
+          <div id="setupLeaderboardEmpty" class="muted">No team scores saved yet.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
+  <script src="main.js"></script>
+</body>
+</html>
+``
