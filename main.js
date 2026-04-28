@@ -1,29 +1,15 @@
-// ==============================
-// MATTER ALIASES (MUST BE FIRST)
-// ==============================
+// Matter.js aliases
 const {
-  Engine,
-  Render,
-  Runner,
-  World,
-  Bodies,
-  Body,
-  Constraint,
-  Mouse,
-  MouseConstraint,
-  Composite,
-  Events,
-  Bounds
+  Engine, Render, Runner, World, Bodies,
+  Constraint, Mouse, MouseConstraint, Composite, Events, Bounds
 } = Matter;
 
-// ==============================
-// CANVAS + ENGINE + RENDER (MUST BE BEFORE USING world/Bodies/etc.)
-// ==============================
+// Canvas & engine
 const canvas = document.getElementById("game");
-
 const engine = Engine.create();
 const world = engine.world;
 
+// Renderer
 const render = Render.create({
   canvas,
   engine,
@@ -34,108 +20,117 @@ const render = Render.create({
     background: "#f5f5f5"
   }
 });
-
 Render.run(render);
+Runner.run(Runner.create(), engine);
 
-const runner = Runner.create();
-Runner.run(runner, engine);
+// --- GAME SETTINGS ---
+const MAX_SPAGHETTI = 20;
+const GAME_DURATION = 10 * 60; // ✅ 10 minutes
 
-// ==============================
-// GAME STATE
-// ==============================
+// State
+let spaghettiCount = 0;
 let spaghetti = [];
-let glue = [];
-
-let selectedBody = null;
+let joints = [];
 let lastBody = null;
+let selectedBody = null;
+let marshmallowPlaced = false;
 
-let score = 0;
-let maxHeight = 0;
-
-let gameEnded = false;
-let timerInterval = null;
-
-// Timer (define BEFORE using timeLeft)
-const GAME_DURATION = 10 * 60; // seconds
 let timeLeft = GAME_DURATION;
+let gameEnded = false;
 
-// ==============================
-// GROUND (now world/Bodies exist)
-// ==============================
-let ground = Bodies.rectangle(
+// Ground
+const ground = Bodies.rectangle(
   window.innerWidth / 2,
   window.innerHeight - 20,
   window.innerWidth,
   40,
-  { isStatic: true, render: { fillStyle: "#222" } }
+  { isStatic: true }
 );
 World.add(world, ground);
 
-// ==============================
-// MOUSE CONTROL (render/canvas exist now)
-// ==============================
+// Mouse control
 const mouse = Mouse.create(render.canvas);
-
-const mouseConstraint = MouseConstraint.create(engine, {
-  mouse,
-  constraint: {
-    stiffness: 0.2,
-    render: { visible: false }
-  }
-});
-
+const mouseConstraint = MouseConstraint.create(engine, { mouse });
 World.add(world, mouseConstraint);
-render.mouse = mouse; // keep mouse in sync with renderer (recommended)
+render.mouse = mouse;
 
-Events.on(mouseConstraint, "startdrag", (e) => (selectedBody = e.body));
-Events.on(mouseConstraint, "enddrag", () => (selectedBody = null));
+Events.on(mouseConstraint, "startdrag", e => selectedBody = e.body);
+Events.on(mouseConstraint, "enddrag", () => selectedBody = null);
 
-// ==============================
-// ADD OBJECTS
-// ==============================
+// UI
+const statusEl = document.getElementById("status");
+const timerEl = document.getElementById("timer");
+
+function updateUI() {
+  statusEl.innerHTML =
+    `Spaghetti used: ${spaghettiCount} / ${MAX_SPAGHETTI}<br>` +
+    `Marshmallow: ${marshmallowPlaced ? "placed ✅" : "not placed"}`;
+
+  const m = Math.floor(timeLeft / 60);
+  const s = String(timeLeft % 60).padStart(2, "0");
+  timerEl.innerHTML = `⏱ ${m}:${s}`;
+}
+
+// Add spaghetti
 function addSpaghetti(x, y) {
-  const stick = Bodies.rectangle(x, y, 60, 5, {
-    friction: 0.5,
+  if (spaghettiCount >= MAX_SPAGHETTI || gameEnded) return;
+
+  const stick = Bodies.rectangle(x, y, 70, 5, {
+    friction: 0.6,
     restitution: 0.2,
-    render: { fillStyle: "#c68642" }
+    render: { fillStyle: "#c58a3d" }
   });
 
   spaghetti.push(stick);
+  spaghettiCount++;
   World.add(world, stick);
 }
 
-function addGlue(bodyA, bodyB) {
-  if (!bodyA || !bodyB || bodyA === bodyB) return;
+// Add joint (tape / string)
+function addJoint(a, b) {
+  if (!a || !b || a === b) return;
 
   const joint = Constraint.create({
-    bodyA,
-    bodyB,
-    stiffness: 0.9,
+    bodyA: a,
+    bodyB: b,
+    stiffness: 0.8,
     length: 0,
-    render: { strokeStyle: "yellow", lineWidth: 3 }
+    render: { strokeStyle: "#ffd400", lineWidth: 2 }
   });
 
-  glue.push(joint);
+  joints.push(joint);
   World.add(world, joint);
 }
 
-// ==============================
-// INTERACTION (canvas exists now)
-// ==============================
+// Marshmallow (heavy!)
+function placeMarshmallow(x, y) {
+  if (marshmallowPlaced || gameEnded) return;
+
+  const marshmallow = Bodies.circle(x, y, 14, {
+    density: 0.02,
+    render: { fillStyle: "#ffffff" }
+  });
+
+  marshmallowPlaced = true;
+  World.add(world, marshmallow);
+}
+
+// Interaction
 canvas.addEventListener("mousedown", () => {
   if (gameEnded) return;
 
-  const mousePos = mouse.position;
+  const pos = mouse.position;
   const bodies = Composite.allBodies(world);
+  const clicked = bodies.find(b => Bounds.contains(b.bounds, pos));
 
-  const clicked = bodies.find((b) => Bounds.contains(b.bounds, mousePos));
-
-  if (!clicked) {
-    addSpaghetti(mousePos.x, mousePos.y);
+  if (!clicked && !marshmallowPlaced) {
+    addSpaghetti(pos.x, pos.y);
     lastBody = null;
-  } else {
+  } else if (!clicked && spaghettiCount >= MAX_SPAGHETTI) {
+    placeMarshmallow(pos.x, pos.y);
+  } else if (clicked) {
     if (lastBody && lastBody !== clicked) {
-      addGlue(lastBody, clicked);
+      addJoint(lastBody, clicked);
       lastBody = null;
     } else {
       lastBody = clicked;
@@ -143,211 +138,53 @@ canvas.addEventListener("mousedown", () => {
   }
 });
 
-// ==============================
-// DELETE (selected body)
-// ==============================
-window.addEventListener("keydown", (e) => {
-  if ((e.key === "Delete" || e.key === "Backspace") && selectedBody) {
-    spaghetti = spaghetti.filter((s) => {
-      if (s === selectedBody) {
-        World.remove(world, s);
-        return false;
-      }
-      return true;
-    });
-
-    glue = glue.filter((g) => {
-      if (g.bodyA === selectedBody || g.bodyB === selectedBody) {
-        World.remove(world, g);
-        return false;
-      }
-      return true;
-    });
-
-    selectedBody = null;
-  }
-});
-
-// ==============================
-// DELETE GLUE (DOUBLE CLICK)
-// ==============================
-canvas.addEventListener("dblclick", () => {
-  const mousePos = mouse.position;
-
-  glue = glue.filter((g) => {
-    const midX = (g.bodyA.position.x + g.bodyB.position.x) / 2;
-    const midY = (g.bodyA.position.y + g.bodyB.position.y) / 2;
-
-    if (Math.hypot(midX - mousePos.x, midY - mousePos.y) < 20) {
-      World.remove(world, g);
-      return false;
-    }
-    return true;
-  });
-});
-
-// ==============================
-// SCORING
-// ==============================
-function calculateScore() {
-  if (spaghetti.length === 0) return 0;
-
-  let highestY = window.innerHeight;
-
-  spaghetti.forEach((b) => {
-    if (b.position.y < highestY) highestY = b.position.y;
-  });
-
-  return Math.max(0, Math.round((window.innerHeight - 20) - highestY));
-}
-
-Events.on(engine, "afterUpdate", () => {
+// Timer
+updateUI();
+const timer = setInterval(() => {
   if (gameEnded) return;
 
-  score = calculateScore();
-  if (score > maxHeight) maxHeight = score;
+  timeLeft--;
+  updateUI();
 
-  updateScoreDisplay();
-});
+  if (timeLeft <= 0) endGame();
+}, 1000);
 
-// ==============================
-// UI (SCORE + TIMER)
-// ==============================
-function createUI(id, styles) {
-  let el = document.getElementById(id);
-
-  if (!el) {
-    el = document.createElement("div");
-    el.id = id;
-    Object.assign(el.style, styles);
-    document.body.appendChild(el);
-  }
-
-  return el;
-}
-
-function updateScoreDisplay() {
-  const el = createUI("score", {
-    position: "absolute",
-    top: "10px",
-    left: "10px",
-    background: "rgba(0,0,0,0.7)",
-    color: "white",
-    padding: "10px",
-    borderRadius: "8px",
-    zIndex: 10
-  });
-
-  el.innerHTML = `Height: ${score}px<br>Best: ${maxHeight}px`;
-}
-
-function updateTimerDisplay() {
-  const el = createUI("timer", {
-    position: "absolute",
-    top: "10px",
-    right: "10px",
-    background: timeLeft < 60 ? "red" : "rgba(0,0,0,0.7)",
-    color: "white",
-    padding: "10px",
-    borderRadius: "8px",
-    zIndex: 10
-  });
-
-  const m = Math.floor(timeLeft / 60);
-  const s = timeLeft % 60;
-
-  el.innerHTML = `Time: ${m}:${s.toString().padStart(2, "0")}`;
-}
-
-// ==============================
-// TIMER
-// ==============================
-function startTimer() {
-  updateTimerDisplay();
-
-  timerInterval = setInterval(() => {
-    if (gameEnded) return;
-
-    timeLeft--;
-
-    if (timeLeft <= 0) endGame();
-    updateTimerDisplay();
-  }, 1000);
-}
-
-// ==============================
-// LEADERBOARD
-// ==============================
-const KEY = "spaghettiLeaderboard";
-
-function getLeaderboard() {
-  return JSON.parse(localStorage.getItem(KEY)) || [];
-}
-
-function saveScore(name, score) {
-  const list = getLeaderboard();
-  list.push({ name, score });
-  list.sort((a, b) => b.score - a.score);
-  localStorage.setItem(KEY, JSON.stringify(list.slice(0, 5)));
-}
-
-// ==============================
-// END GAME
-// ==============================
+// End game & debrief
 function endGame() {
   gameEnded = true;
-  clearInterval(timerInterval);
-
-  const name = prompt("Enter your name:", "Player");
-  if (name) saveScore(name, maxHeight);
-
-  const scores = getLeaderboard();
+  clearInterval(timer);
 
   const overlay = document.createElement("div");
-  Object.assign(overlay.style, {
-    position: "absolute",
-    inset: "0",
-    background: "rgba(0,0,0,0.85)",
-    display: "flex",
-    flexDirection: "column",
-    justifyContent: "center",
-    alignItems: "center",
-    color: "white",
-    zIndex: 999
-  });
+  overlay.style.cssText = `
+    position:fixed; inset:0;
+    background:rgba(0,0,0,0.85);
+    color:white;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    text-align:center;
+    padding:20px;
+    z-index:99;
+  `;
 
   overlay.innerHTML = `
-    <h1>🏆 Time's Up!</h1>
-    <h2>Your Height: ${maxHeight}px</h2>
-    <h3>Leaderboard</h3>
-    <ol>${scores.map((s) => `<li>${s.name} - ${s.score}px</li>`).join("")}</ol>
-    <button style="padding:10px 16px; font-size:16px; cursor:pointer;" onclick="location.reload()">Play Again</button>
+    <div style="max-width:640px">
+      <h1>🏆 Time’s up!</h1>
+      <p>The structure must stand on its own with the marshmallow on top.</p>
+
+      <h3>Debrief — Team Roles</h3>
+      <ul style="text-align:left">
+        <li>Who naturally took on leadership or coordination roles?</li>
+        <li>Who focused on experimentation versus planning?</li>
+        <li>What assumptions did the team make early on?</li>
+        <li>What would you do differently with more time?</li>
+        <li>How does this reflect how your team works day‑to‑day?</li>
+      </ul>
+
+      <p><em>Inspired by the Marshmallow Challenge (Tom Wujec)</em></p>
+      <button onclick="location.reload()">Run again</button>
+    </div>
   `;
 
   document.body.appendChild(overlay);
 }
-
-// ==============================
-// RESIZE HANDLING (keeps ground + render correct)
-// ==============================
-window.addEventListener("resize", () => {
-  Render.setSize(render, window.innerWidth, window.innerHeight);
-
-  // replace ground to match new width/height
-  World.remove(world, ground);
-  ground = Bodies.rectangle(
-    window.innerWidth / 2,
-    window.innerHeight - 20,
-    window.innerWidth,
-    40,
-    { isStatic: true, render: { fillStyle: "#222" } }
-  );
-  World.add(world, ground);
-});
-
-// ==============================
-// START
-// ==============================
-startTimer();
-updateScoreDisplay();
-``
