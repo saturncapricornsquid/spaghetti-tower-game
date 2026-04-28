@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>VodafoneThree Marshmallow Challenge</title>
+
   <style>
     :root {
       --vt-red: #e60000;
@@ -11,17 +12,19 @@
       --vt-charcoal: #2c2c2c;
       --vt-light: #f5f5f5;
       --vt-accent: #8f2bd1;
-      --panel: rgba(255, 255, 255, 0.94);
+      --panel: rgba(255, 255, 255, 0.96);
       --shadow: 0 10px 30px rgba(0,0,0,0.18);
     }
 
-    * { box-sizing: border-box; }
+    * {
+      box-sizing: border-box;
+    }
 
     body {
       margin: 0;
       overflow: hidden;
       background:
-        radial-gradient(circle at top right, rgba(143, 43, 209, 0.09), transparent 22%),
+        radial-gradient(circle at top right, rgba(143, 43, 209, 0.08), transparent 22%),
         linear-gradient(180deg, #fafafa 0%, #f3f3f3 100%);
       font-family: Arial, Helvetica, sans-serif;
       color: var(--vt-dark);
@@ -38,7 +41,7 @@
       left: 0;
       right: 0;
       display: flex;
-      align-items: centre;
+      align-items: center;
       justify-content: space-between;
       padding: 10px 16px;
       background: linear-gradient(90deg, var(--vt-red) 0%, #b80000 60%, var(--vt-accent) 100%);
@@ -51,7 +54,7 @@
       font-weight: 700;
       letter-spacing: 0.2px;
       display: flex;
-      align-items: centre;
+      align-items: center;
       gap: 10px;
       font-size: 16px;
     }
@@ -98,7 +101,7 @@
       padding: 12px 16px;
       border-radius: 14px;
       box-shadow: var(--shadow);
-      text-align: centre;
+      text-align: center;
       font-size: 13px;
       z-index: 10;
       width: min(900px, calc(100vw - 24px));
@@ -179,16 +182,23 @@
       color: var(--vt-dark);
     }
 
-    button:hover { transform: translateY(-1px); }
-    button:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+    button:hover {
+      transform: translateY(-1px);
+    }
+
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+    }
 
     .modal {
       position: fixed;
       inset: 0;
       background: rgba(0,0,0,0.55);
       display: flex;
-      align-items: centre;
-      justify-content: centre;
+      align-items: center;
+      justify-content: center;
       z-index: 50;
       padding: 20px;
     }
@@ -219,7 +229,10 @@
       gap: 14px;
     }
 
-    .muted { color: #666; font-size: 13px; }
+    .muted {
+      color: #666;
+      font-size: 13px;
+    }
 
     .setup-grid {
       display: grid;
@@ -259,8 +272,14 @@
         top: auto;
         bottom: 142px;
       }
-      .two-col { grid-template-columns: 1fr; }
-      .hud { max-width: calc(100vw - 24px); }
+
+      .two-col {
+        grid-template-columns: 1fr;
+      }
+
+      .hud {
+        max-width: calc(100vw - 24px);
+      }
     }
   </style>
 </head>
@@ -285,6 +304,7 @@
       </div>
       <p style="margin-top:8px;">Leaderboard is saved in this browser so one facilitator can run multiple teams in sequence.</p>
     </div>
+
     <div class="panel">
       <h3>Current team</h3>
       <div id="currentTeamSummary">Not started yet.</div>
@@ -306,7 +326,7 @@
       </div>
       <div class="card-body">
         <p>
-          Classic rules: 20 spaghetti sticks, tape/string, one marshmallow on top, free-standing structure. Use one facilitator browser to run teams one after another.
+          Classic rules: 20 spaghetti sticks, tape/string, one marshmallow on top, free-standing structure.
         </p>
 
         <div class="setup-grid">
@@ -342,4 +362,3 @@
   <script src="main.js"></script>
 </body>
 </html>
-``
