@@ -1,34 +1,53 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>🍝 Spaghetti Tower Challenge</title>
+  <meta charset="UTF-8" />
+  <title>🍝 Spaghetti (Marshmallow) Challenge</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-    <style>
-        body {
-            margin: 0;
-            overflow: hidden;
-            background: #f5f5f5;
-            font-family: Arial, sans-serif;
-        }
+  <style>
+    body {
+      margin: 0;
+      overflow: hidden;
+      background: #f5f5f5;
+      font-family: Arial, sans-serif;
+    }
 
-        canvas {
-            display: block;
-        }
-    </style>
+    canvas { display: block; }
+
+    .hud {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      background: rgba(0,0,0,0.75);
+      color: white;
+      padding: 10px 14px;
+      border-radius: 8px;
+      font-size: 14px;
+      z-index: 10;
+      line-height: 1.4;
+    }
+
+    .hud.right {
+      right: 10px;
+      left: auto;
+      text-align: right;
+    }
+
+    .instructions {
+      position: absolute;
+      bottom: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(255,255,255,0.95);
+      padding: 10px 14px;
+      border-radius: 10px;
+      font-size: 13px;
+      max-width: 90%;
+      text-align: centre;
+      z-index: 10;
+    }
+  </style>
 </head>
 
 <body>
-
-    <!-- Game Canvas -->
-    <canvas id="game"></canvas>
-
-    <!-- Matter.js -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
-
-    <!-- Game code -->
-    <script src="main.js"></script>
-
-</body>
-</html>
-``
