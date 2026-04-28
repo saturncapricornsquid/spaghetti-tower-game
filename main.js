@@ -230,3 +230,393 @@ function addSpaghetti(x, y) {
 
   Body.setAngle(stick, (Math.random() - 0.5) * 0.3);
 
+  spaghetti.push(stick);
+  spaghettiCount += 1;
+  World.add(world, stick);
+  updateUI();
+}
+
+function addJoint(bodyA, bodyB) {
+  if (!bodyA || !bodyB || bodyA === bodyB || gameEnded || paused) return;
+
+  const joint = Constraint.create({
+    bodyA,
+    bodyB,
+    length: 0,
+    stiffness: 0.82,
+    damping: 0.02,
+    render: {
+      strokeStyle: "#ffd400",
+      lineWidth: 3
+    }
+  });
+
+  joints.push(joint);
+  World.add(world, joint);
+  updateUI();
+}
+
+function placeMarshmallow(x, y) {
+  if (marshmallow || spaghettiCount < MAX_SPAGHETTI || gameEnded || paused) return;
+
+  marshmallow = Bodies.circle(x, y, 16, {
+    density: 0.02,
+    friction: 0.55,
+    restitution: 0.08,
+    render: {
+      fillStyle: "#ffffff",
+      strokeStyle: "#d9d9d9",
+      lineWidth: 1
+    }
+  });
+
+  World.add(world, marshmallow);
+  updateUI();
+}
+
+function calculateHeight() {
+  const bodies = [...spaghetti];
+  if (marshmallow) bodies.push(marshmallow);
+  if (!bodies.length) return 0;
+
+  const highestPoint = Math.min(...bodies.map(b => b.bounds.min.y));
+  const height = Math.round((window.innerHeight - 20) - highestPoint);
+  return Math.max(0, height);
+}
+
+function structureIsStanding() {
+  if (!marshmallow) return false;
+  if (marshmallow.position.y > window.innerHeight - 55) return false;
+  return !Composite.allBodies(world).some(body => body !== ground && body.speed > 35);
+}
+
+function marshmallowIsOnTop() {
+  if (!marshmallow) return false;
+  const highestOther = spaghetti.length ? Math.min(...spaghetti.map(b => b.bounds.min.y)) : Infinity;
+  return marshmallow.bounds.min.y <= highestOther + 8;
+}
+
+function currentResult() {
+  const score = calculateHeight();
+  const standing = structureIsStanding();
+  const onTop = marshmallowIsOnTop();
+  const valid = Boolean(marshmallow && standing && onTop);
+  return { score, standing, onTop, valid };
+}
+
+function startTimerLoop() {
+  if (timerHandle) clearInterval(timerHandle);
+
+  timerHandle = setInterval(() => {
+    if (paused || gameEnded || !currentTeam.name) return;
+
+    timeLeft -= 1;
+
+    if (timeLeft === 120 && !warningFlags.two) {
+      warningFlags.two = true;
+      announceWarning("2 minutes remaining");
+    }
+
+    if (timeLeft === 30 && !warningFlags.thirty) {
+      warningFlags.thirty = true;
+      announceWarning("30 seconds remaining");
+    }
+
+    if (timeLeft <= 0) {
+      timeLeft = 0;
+      updateUI();
+      endGame();
+      return;
+    }
+
+    updateUI();
+  }, 1000);
+}
+
+canvas.addEventListener("mousedown", () => {
+  if (gameEnded || paused || !currentTeam.name) return;
+
+  const pos = mouse.position;
+  const bodies = Composite.allBodies(world).filter(b => b !== ground);
+  const clicked = bodies.find(b => Bounds.contains(b.bounds, pos));
+
+  if (!clicked) {
+    if (spaghettiCount < MAX_SPAGHETTI) {
+      addSpaghetti(pos.x, pos.y);
+      lastBody = null;
+    } else if (!marshmallow) {
+      placeMarshmallow(pos.x, pos.y);
+      lastBody = null;
+    }
+    return;
+  }
+
+  if (lastBody && lastBody !== clicked) {
+    addJoint(lastBody, clicked);
+    lastBody = null;
+  } else {
+    lastBody = clicked;
+  }
+});
+
+window.addEventListener("keydown", (e) => {
+  if (gameEnded || paused) return;
+
+  if ((e.key === "Delete" || e.key === "Backspace") && selectedBody && spaghetti.includes(selectedBody)) {
+    spaghetti = spaghetti.filter(s => s !== selectedBody);
+
+    joints = joints.filter(j => {
+      const linked = j.bodyA === selectedBody || j.bodyB === selectedBody;
+      if (linked) World.remove(world, j);
+      return !linked;
+    });
+
+    World.remove(world, selectedBody);
+    spaghettiCount = spaghetti.length;
+    selectedBody = null;
+    updateUI();
+  }
+});
+
+window.addEventListener("resize", () => {
+  Render.setSize(render, window.innerWidth, window.innerHeight);
+  createGround();
+  updateUI();
+});
+
+pauseBtn.addEventListener("click", () => {
+  if (gameEnded || !currentTeam.name) return;
+  paused = !paused;
+  pauseBtn.textContent = paused ? "Resume" : "Pause";
+  updateUI();
+});
+
+resetBtn.addEventListener("click", () => {
+  resetRunState();
+});
+
+startTeamBtn.addEventListener("click", () => {
+  const teamName = teamNameInput.value.trim() || "Unnamed team";
+  const teamSize = clamp(Number(teamSizeInput.value) || 4, 1, 20);
+
+  currentTeam = {
+    name: teamName,
+    size: teamSize,
+    startedAt: new Date().toISOString()
+  };
+
+  localStorage.setItem(LAST_TEAM_KEY, JSON.stringify(currentTeam));
+  setupModal.style.display = "none";
+  resetRunState();
+  updateUI();
+});
+
+clearLeaderboardBtn.addEventListener("click", () => {
+  localStorage.removeItem(LEADERBOARD_KEY);
+  renderLeaderboard(setupLeaderboardEl, setupLeaderboardEmptyEl);
+});
+
+function buildRetroText(entry, answers) {
+  const lines = [
+    "VodafoneThree Marshmallow Challenge retrospective",
+    `Team: ${entry.team}`,
+    `Participants: ${entry.teamSize}`,
+    `Score (height): ${entry.score}px`,
+    `Valid finish: ${entry.valid ? "Yes" : "No"}`,
+    `Structure standing: ${entry.standing ? "Yes" : "No"}`,
+    `Marshmallow on top: ${entry.onTop ? "Yes" : "No"}`,
+    `Completed at: ${entry.completedAt}`,
+    "",
+    "Debrief notes:"
+  ];
+
+  answers.forEach((answer, index) => {
+    lines.push(`${index + 1}. ${answer.prompt}`);
+    lines.push(answer.response || "[No response captured]");
+    lines.push("");
+  });
+
+  return lines.join("\n");
+}
+
+function buildCsv(entry, answers) {
+  const rows = [[
+    "team", "teamSize", "scorePx", "validFinish", "standing", "marshmallowOnTop", "completedAt", "question", "response"
+  ]];
+
+  answers.forEach(answer => {
+    rows.push([
+      entry.team,
+      entry.teamSize,
+      entry.score,
+      entry.valid,
+      entry.standing,
+      entry.onTop,
+      entry.completedAt,
+      answer.prompt,
+      (answer.response || "").replace(/\r?\n/g, " ")
+    ]);
+  });
+
+  return rows
+    .map(row => row.map(value => `"${String(value).replace(/"/g, '""')}"`).join(","))
+    .join("\n");
+}
+
+function downloadFile(filename, content, mimeType) {
+  const blob = new Blob([content], { type: mimeType });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
+function endGame() {
+  gameEnded = true;
+  paused = true;
+  pauseBtn.textContent = "Resume";
+
+  const result = currentResult();
+  const completedAt = new Date().toLocaleString("en-GB");
+
+  const entry = {
+    team: currentTeam.name || "Unnamed team",
+    teamSize: currentTeam.size,
+    score: result.score,
+    standing: result.standing,
+    onTop: result.onTop,
+    valid: result.valid,
+    completedAt
+  };
+
+  addLeaderboardEntry(entry);
+
+  removeEndOverlay();
+
+  const overlay = document.createElement("div");
+  overlay.id = "endOverlay";
+  overlay.className = "modal";
+  overlay.innerHTML = `
+    <div class="card">
+      <div class="card-header">
+        <h2>Round complete — ${escapeHtml(entry.team)}</h2>
+      </div>
+      <div class="card-body">
+        <div class="two-col">
+          <div>
+            <p><strong>Score:</strong> ${entry.score}px</p>
+            <p><strong>Structure standing:</strong> ${entry.standing ? "Yes" : "No"}</p>
+            <p><strong>Marshmallow on top:</strong> ${entry.onTop ? "Yes" : "No"}</p>
+            <p><strong>Valid finish:</strong> ${entry.valid ? "Yes ✅" : "No"}</p>
+          </div>
+          <div>
+            <h3 style="margin:0 0 8px;">Multi-team leaderboard</h3>
+            <ol id="overlayLeaderboard" class="leaderboard-list"></ol>
+            <div id="overlayLeaderboardEmpty" class="muted">No saved scores yet.</div>
+          </div>
+        </div>
+
+        <div>
+          <h3 style="margin:0 0 8px;">Debrief prompts for retrospectives</h3>
+          <p class="muted">Capture team-role notes and export them straight into your retrospective pack.</p>
+        </div>
+
+        <label>
+          1. Who naturally stepped into leadership, coordination, or build roles?
+          <textarea data-prompt="Who naturally stepped into leadership, coordination, or build roles?"></textarea>
+        </label>
+
+        <label>
+          2. What assumptions did the team make early, and when were those assumptions tested?
+          <textarea data-prompt="What assumptions did the team make early, and when were those assumptions tested?"></textarea>
+        </label>
+
+        <label>
+          3. Did the team lean more towards planning or experimentation, and what effect did that have?
+          <textarea data-prompt="Did the team lean more towards planning or experimentation, and what effect did that have?"></textarea>
+        </label>
+
+        <label>
+          4. What lesson should this team carry into future remote projects or retrospectives?
+          <textarea data-prompt="What lesson should this team carry into future remote projects or retrospectives?"></textarea>
+        </label>
+
+        <div class="btn-row">
+          <button id="downloadCsvBtn" type="button">Download debrief CSV</button>
+          <button id="copyRetroBtn" class="secondary" type="button">Copy retro summary</button>
+          <button id="nextTeamBtn" class="ghost" type="button">Next team</button>
+          <button id="playAgainBtn" class="ghost" type="button">Replay same team</button>
+        </div>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(overlay);
+
+  const overlayLeaderboard = overlay.querySelector("#overlayLeaderboard");
+  const overlayLeaderboardEmpty = overlay.querySelector("#overlayLeaderboardEmpty");
+  renderLeaderboard(overlayLeaderboard, overlayLeaderboardEmpty);
+  renderLeaderboard(setupLeaderboardEl, setupLeaderboardEmptyEl);
+
+  const getAnswers = () => Array.from(overlay.querySelectorAll("textarea")).map(area => ({
+    prompt: area.dataset.prompt,
+    response: area.value.trim()
+  }));
+
+  overlay.querySelector("#downloadCsvBtn").addEventListener("click", () => {
+    const file = buildCsv(entry, getAnswers());
+    const safeTeam = entry.team.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "team";
+    downloadFile(`${safeTeam}-retrospective.csv`, file, "text/csv;charset=utf-8");
+  });
+
+  overlay.querySelector("#copyRetroBtn").addEventListener("click", async () => {
+    const text = buildRetroText(entry, getAnswers());
+    try {
+      await navigator.clipboard.writeText(text);
+      announceWarning("Retro summary copied to clipboard");
+    } catch {
+      downloadFile("retrospective.txt", text, "text/plain;charset=utf-8");
+    }
+  });
+
+  overlay.querySelector("#nextTeamBtn").addEventListener("click", () => {
+    setupModal.style.display = "flex";
+    teamNameInput.value = "";
+    teamSizeInput.value = "4";
+    removeEndOverlay();
+    currentTeam = { name: "", size: 4, startedAt: null };
+    updateUI();
+  });
+
+  overlay.querySelector("#playAgainBtn").addEventListener("click", () => {
+    removeEndOverlay();
+    paused = false;
+    resetRunState();
+  });
+}
+
+function initialiseSetup() {
+  const savedTeam = localStorage.getItem(LAST_TEAM_KEY);
+
+  if (savedTeam) {
+    try {
+      const parsed = JSON.parse(savedTeam);
+      if (parsed.name) teamNameInput.value = parsed.name;
+      if (parsed.size) teamSizeInput.value = parsed.size;
+    } catch {
+      // ignore corrupt local storage
+    }
+  }
+
+  renderLeaderboard(setupLeaderboardEl, setupLeaderboardEmptyEl);
+  updateUI();
+  startTimerLoop();
+}
+
+createGround();
+resetRunState();
+initialiseSetup();
