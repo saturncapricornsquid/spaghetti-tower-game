@@ -46,7 +46,6 @@
       min-width:260px;
     }
     .hud .row{ display:flex; justify-content:space-between; gap:12px; margin-top:4px; }
-    .hud small{ opacity:0.85; }
 
     .panel{
       background: var(--panel);
@@ -112,12 +111,8 @@
     <span id="brandTeamLabel">Team/Person: —</span>
   </div>
 
-  <!-- LEFT HUD -->
   <div class="hud">
-    <div>
-      <strong>Goal:</strong>
-      Build the tallest free‑standing tower. The <strong>top spaghetti piece</strong> (pink/red circle) must be the highest point when time ends.
-    </div>
+    <div><strong>Goal:</strong> Build the tallest tower. The <strong>top piece</strong> must be highest when time ends.</div>
 
     <div class="panel">
       <strong>Teams / People</strong>
@@ -126,12 +121,7 @@
       <div style="max-height:170px; overflow:auto; margin-top:8px;">
         <table>
           <thead>
-            <tr>
-              <th>#</th>
-              <th>Name</th>
-              <th>Height</th>
-              <th>Result</th>
-            </tr>
+            <tr><th>#</th><th>Name</th><th>Height</th><th>Result</th></tr>
           </thead>
           <tbody id="teamsTableBody">
             <tr><td colspan="4" class="muted">No teams added yet.</td></tr>
@@ -141,14 +131,12 @@
     </div>
   </div>
 
-  <!-- RIGHT HUD -->
   <div class="hud right">
     <div class="row"><span>Timer</span><span id="timer">⏱ 10:00</span></div>
     <div class="row"><span>Spaghetti</span><span id="materials">0</span></div>
     <div class="row"><span>Height</span><span id="height">0 cm</span></div>
   </div>
 
-  <!-- CONTROLS -->
   <div class="controls">
     <div class="panel">
       <strong>Team / Person</strong>
@@ -166,21 +154,19 @@
       </div>
 
       <div class="muted" style="margin-top:10px;">
-        Glue ON: click stick A, then stick B to <strong>snap-and-glue ends</strong> (rotation locked while gluing).
+        Glue ON: click stick A, then stick B to snap-and-glue ends (rotation locked while gluing).
       </div>
     </div>
   </div>
 
-  <div class="toast" id="toast">
-    Loading…
-  </div>
+  <div class="toast" id="toast">Ready. Enter a name and press Start.</div>
 
   <canvas id="game"></canvas>
 
-  <!-- ✅ Matter.js MUST be a real script tag -->
+  <!-- Matter.js -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
 
-  <!-- Game logic -->
+  <!-- Your game -->
   <script src="main.js"></script>
 </body>
 </html>
