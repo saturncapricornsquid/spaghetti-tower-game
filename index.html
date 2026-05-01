@@ -43,7 +43,7 @@
     .hud.right{
       right:12px; left:auto;
       text-align:right;
-      min-width:240px;
+      min-width:260px;
     }
     .hud .row{ display:flex; justify-content:space-between; gap:12px; }
     .hud small{ opacity:0.85; }
@@ -127,7 +127,7 @@
       border-radius:12px;
       box-shadow:var(--shadow);
       font-size:13px;
-      max-width:620px;
+      max-width:640px;
       z-index:40;
       line-height:1.35;
     }
@@ -156,7 +156,7 @@
   <div class="hud">
     <div>
       <strong>Goal:</strong>
-      Build the tallest free‑standing tower. The <strong>top spaghetti piece</strong> (pink circle) must be the highest point.
+      Build the tallest free‑standing tower. The <strong>top spaghetti piece</strong> (pink circle) must be the highest point when time ends.
     </div>
 
     <div class="icon-wrap">
@@ -233,7 +233,7 @@
 
   <canvas id="game"></canvas>
 
-  <!-- Matter.js -->
+  <!-- ✅ Correct Matter.js include -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
   <!-- Game logic -->
   <script src="main.js"></script>
