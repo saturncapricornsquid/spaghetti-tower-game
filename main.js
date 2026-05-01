@@ -1,5 +1,4 @@
-const {
-  Engine, Render, Runner, World, Bodies,
+const { Engine, Render, Runner, World, Bodies,
   Constraint, Mouse, MouseConstraint, Composite,
   Events, Body, Vector, Query
 } = Matter;
@@ -211,7 +210,7 @@ World.add(world, mouseConstraint);
 render.mouse = mouse;
 
 // Selecting on drag still works
-Events.on(mouseConstraint, "startdrag", e => {
+Events.on(mouseConstraint, "startdrag", (e) => {
   selectedBody = e.body;
 });
 
@@ -226,18 +225,14 @@ function selectBodyAtMouse() {
 /* ---------- Rotation (wheel + Q/E) — LOCKED while gluing ---------- */
 
 window.addEventListener("wheel", (e) => {
-  // ✅ lock rotation while gluing (Glue ON OR mid-glue)
   if (glueMode || glueFirst) return;
-
   if (!selectedBody || paused || gameEnded) return;
   e.preventDefault();
   Body.rotate(selectedBody, e.deltaY * 0.002);
 }, { passive: false });
 
 window.addEventListener("keydown", (e) => {
-  // ✅ lock rotation while gluing (Glue ON OR mid-glue)
   if (glueMode || glueFirst) return;
-
   if (!selectedBody || paused || gameEnded) return;
   if (e.key === "q" || e.key === "Q") Body.rotate(selectedBody, -0.05);
   if (e.key === "e" || e.key === "E") Body.rotate(selectedBody, 0.05);
@@ -345,7 +340,7 @@ glueBtn.onclick = () => {
   glueBtn.classList.toggle("active", glueMode);
   glueBtn.textContent = glueMode ? "Glue ON (pick 2 sticks)" : "Glue (tape/string)";
   setToast(glueMode
-    ? "Glue ON: click stick A, then stick B to glue their <strong>ends</strong>. (Rotation locked while gluing.)"
+    ? "Glue ON: click stick A, then stick B to glue their <strong>ends</strong>. Rotation is locked while gluing."
     : "Glue OFF: click a stick to select it and rotate with mouse wheel or Q/E."
   );
 };
@@ -357,14 +352,12 @@ canvas.addEventListener("mousedown", () => {
 
   const hit = selectBodyAtMouse();
 
-  // If glue is OFF: click empty space adds spaghetti
   if (!glueMode && !hit) {
     addSpaghettiAt(mouse.position.x, mouse.position.y);
     setToast(`Spaghetti added. Using <strong>${spaghetti.length}</strong>.`);
     return;
   }
 
-  // Glue ON: 2-click flow
   if (glueMode && hit) {
     if (!glueFirst) {
       glueFirst = hit;
@@ -393,7 +386,7 @@ canvas.addEventListener("mousedown", () => {
 
 Events.on(render, "afterRender", () => {
   if (!selectedBody) return;
-  if (selectedBody.circleRadius) return; // highlight only spaghetti sticks
+  if (selectedBody.circleRadius) return;
 
   const ctx = render.context;
   const verts = selectedBody.vertices;
@@ -404,12 +397,10 @@ Events.on(render, "afterRender", () => {
   for (let i = 1; i < verts.length; i++) ctx.lineTo(verts[i].x, verts[i].y);
   ctx.closePath();
 
-  // strong red outline
   ctx.strokeStyle = "rgba(230, 0, 0, 0.95)";
   ctx.lineWidth = 4;
   ctx.stroke();
 
-  // subtle purple glow
   ctx.strokeStyle = "rgba(143, 43, 209, 0.45)";
   ctx.lineWidth = 8;
   ctx.stroke();
