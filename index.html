@@ -12,57 +12,41 @@
       --panel: rgba(255,255,255,0.96);
       --shadow: 0 10px 30px rgba(0,0,0,0.18);
     }
-
-    * { box-sizing: border-box; }
-
+    *{ box-sizing:border-box; }
     body{
-      margin:0;
-      overflow:hidden;
-      background:#f3f3f3;
+      margin:0; overflow:hidden;
+      background: linear-gradient(180deg,#fafafa,#f3f3f3);
       font-family: Arial, Helvetica, sans-serif;
     }
-
     canvas{ display:block; }
 
     .brand-bar{
-      position:fixed;
-      top:0; left:0; right:0;
+      position:fixed; top:0; left:0; right:0;
       height:56px;
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
+      display:flex; align-items:center; justify-content:space-between;
       padding:0 16px;
       background: linear-gradient(90deg,var(--vt-red),var(--vt-accent));
-      color:#fff;
-      z-index:30;
+      color:#fff; z-index:30;
     }
 
     .hud{
-      position:absolute;
-      top:72px;
-      left:12px;
-      background: rgba(24,24,24,0.85);
+      position:absolute; top:70px; left:12px;
+      background: rgba(24,24,24,0.84);
       color:#fff;
       padding:12px 14px;
       border-radius:12px;
       font-size:14px;
       z-index:10;
-      min-width:360px;
+      min-width:380px;
+      line-height:1.35;
     }
-
     .hud.right{
-      left:auto;
-      right:12px;
-      min-width:220px;
+      right:12px; left:auto;
       text-align:right;
+      min-width:260px;
     }
-
-    .row{
-      display:flex;
-      justify-content:space-between;
-      gap:10px;
-      margin-top:4px;
-    }
+    .hud .row{ display:flex; justify-content:space-between; gap:12px; margin-top:4px; }
+    .hud small{ opacity:0.85; }
 
     .panel{
       background: var(--panel);
@@ -71,153 +55,15 @@
       box-shadow: var(--shadow);
       font-size:13px;
       color:#111;
-      margin-top:10px;
+      margin-top:12px;
     }
 
-    table{
-      width:100%;
-      border-collapse:collapse;
-      font-size:12px;
-    }
-
-    th, td{
-      padding:6px;
-      border-bottom:1px solid #e5e5e5;
-      text-align:left;
-    }
-
-    th{
-      font-size:11px;
-      text-transform:uppercase;
-      color:#666;
-    }
+    table{ width:100%; border-collapse:collapse; font-size:12px; }
+    th, td{ padding:6px 8px; border-bottom:1px solid #eee; text-align:left; }
+    th{ font-size:11px; text-transform:uppercase; letter-spacing:0.08em; color:#666; }
+    .muted{ color:#666; }
 
     .controls{
-      position:absolute;
-      top:160px;
-      right:12px;
-      width:320px;
-      z-index:10;
+      position:absolute; top:150px; right:12px;
+      width:320px; z-index:10;
     }
-
-    .btn-row{
-      display:flex;
-      flex-wrap:wrap;
-      gap:8px;
-      margin-top:8px;
-    }
-
-    button{
-      border:0;
-      border-radius:999px;
-      padding:8px 12px;
-      font-weight:800;
-      cursor:pointer;
-      background:#222;
-      color:#fff;
-    }
-
-    button.primary{ background: var(--vt-red); }
-    button.active{ background: var(--vt-accent); }
-
-    input{
-      width:100%;
-      padding:8px 12px;
-      border-radius:999px;
-      border:1px solid #ddd;
-      font-size:13px;
-    }
-
-    .toast{
-      position:fixed;
-      bottom:12px;
-      left:12px;
-      background:rgba(0,0,0,0.85);
-      color:#fff;
-      padding:10px 14px;
-      border-radius:12px;
-      z-index:40;
-      font-size:13px;
-      max-width:640px;
-    }
-  </style>
-</head>
-
-<body>
-
-  <!-- Top bar -->
-  <div class="brand-bar">
-    <strong>Spaghetti Tower Challenge</strong>
-    <span id="brandTeamLabel">Team/Person: —</span>
-  </div>
-
-  <!-- LEFT HUD -->
-  <div class="hud">
-    <div>
-      <strong>Goal:</strong> Build the tallest free‑standing tower.  
-      The <strong>top spaghetti piece</strong> must be highest.
-    </div>
-
-    <div class="panel">
-      <strong>Teams / People</strong>
-      <div style="max-height:160px; overflow:auto; margin-top:6px;">
-        <table>
-          <thead>
-            <tr>
-              <th>#</th>
-              <th>Name</th>
-              <th>Height</th>
-              <th>Result</th>
-            </tr>
-          </thead>
-          <tbody id="teamsTableBody">
-            <tr>
-              <td colspan="4" style="color:#666;">No teams added yet.</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-  </div>
-
-  <!-- RIGHT HUD -->
-  <div class="hud right">
-    <div class="row"><span>Timer</span><span id="timer">⏱ 10:00</span></div>
-    <div class="row"><span>Spaghetti</span><span id="materials">0</span></div>
-    <div class="row"><span>Height</span><span id="height">0 cm</span></div>
-  </div>
-
-  <!-- CONTROLS -->
-  <div class="controls">
-    <div class="panel">
-      <strong>Team / Person</strong>
-      <input id="teamName" placeholder="Enter name…" />
-
-      <div class="btn-row">
-        <button id="startBtn">Start</button>
-        <button id="stopBtn">Stop</button>
-        <button id="resetBtn">Reset</button>
-      </div>
-
-      <div class="btn-row">
-        <button id="addSpaghettiBtn" class="primary">Add spaghetti</button>
-        <button id="glueBtn">Glue (tape/string)</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Toast messages -->
-  <div class="toast" id="toast">
-    Press <strong>Start</strong> to begin.
-  </div>
-
-  <!-- Game canvas -->
-  <canvas id="game"></canvas>
-
-  <!-- ✅ Matter.js (THIS MUST STAY EXACTLY LIKE THIS) -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
-
-  <!-- ✅ Your JavaScript logic -->
-  <script src="main.js"></script>
-</body>
-</html>
