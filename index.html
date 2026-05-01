@@ -46,9 +46,10 @@
       min-width:260px;
     }
     .hud .row{ display:flex; justify-content:space-between; gap:12px; margin-top:4px; }
+    .hud small{ opacity:0.85; }
 
     .panel{
-      background: rgba(255,255,255,0.96);
+      background: var(--panel);
       padding:12px;
       border-radius:14px;
       box-shadow: var(--shadow);
@@ -111,16 +112,27 @@
     <span id="brandTeamLabel">Team/Person: —</span>
   </div>
 
+  <!-- LEFT HUD -->
   <div class="hud">
-    <div><strong>Goal:</strong> Build the tallest tower. The <strong>pink top piece</strong> must be highest when time ends.</div>
+    <div>
+      <strong>Goal:</strong>
+      Build the tallest free‑standing tower. The <strong>top spaghetti piece</strong> (pink/red circle) must be the highest point when time ends.
+    </div>
 
+    <!-- Teams table -->
     <div class="panel">
       <strong>Teams / People</strong>
       <div class="muted">A name is added when you press Start</div>
+
       <div style="max-height:170px; overflow:auto; margin-top:8px;">
         <table>
           <thead>
-            <tr><th>#</th><th>Name</th><th>Height</th><th>Result</th></tr>
+            <tr>
+              <th>#</th>
+              <th>Name</th>
+              <th>Height</th>
+              <th>Result</th>
+            </tr>
           </thead>
           <tbody id="teamsTableBody">
             <tr><td colspan="4" class="muted">No teams added yet.</td></tr>
@@ -130,12 +142,14 @@
     </div>
   </div>
 
+  <!-- RIGHT HUD -->
   <div class="hud right">
     <div class="row"><span>Timer</span><span id="timer">⏱ 10:00</span></div>
     <div class="row"><span>Spaghetti</span><span id="materials">0</span></div>
     <div class="row"><span>Height</span><span id="height">0 cm</span></div>
   </div>
 
+  <!-- CONTROLS -->
   <div class="controls">
     <div class="panel">
       <strong>Team / Person</strong>
@@ -153,19 +167,21 @@
       </div>
 
       <div class="muted" style="margin-top:10px;">
-        Tip: If you don’t see “JS loaded ✅” in the message bar below, the scripts aren’t loading.
+        Glue ON: click stick A, then stick B to snap-and-glue ends (rotation locked while gluing).
       </div>
     </div>
   </div>
 
-  <div class="toast" id="toast">Loading…</div>
+  <div class="toast" id="toast">
+    Loading…
+  </div>
 
   <canvas id="game"></canvas>
 
-  <!-- ✅ MUST be a real script tag -->
+  <!-- ✅ Matter.js -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
 
-  <!-- Your game logic -->
+  <!-- Game logic -->
   <script src="main.js"></script>
 </body>
 </html>
