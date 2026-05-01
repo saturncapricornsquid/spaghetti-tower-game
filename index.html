@@ -6,166 +6,78 @@
   <title>Spaghetti Tower Challenge</title>
 
   <style>
-    :root{
-      --vt-red:#e60000;
-      --vt-accent:#8f2bd1;
-      --panel: rgba(255,255,255,0.96);
-      --shadow: 0 10px 30px rgba(0,0,0,0.18);
-    }
-    *{ box-sizing:border-box; }
-    body{
-      margin:0; overflow:hidden;
-      background: linear-gradient(180deg,#fafafa,#f3f3f3);
+    body {
+      margin: 0;
+      overflow: hidden;
       font-family: Arial, Helvetica, sans-serif;
-    }
-    canvas{ display:block; }
-
-    .brand-bar{
-      position:fixed; top:0; left:0; right:0;
-      height:56px;
-      display:flex; align-items:center; justify-content:space-between;
-      padding:0 16px;
-      background: linear-gradient(90deg,var(--vt-red),var(--vt-accent));
-      color:#fff; z-index:30;
+      background: #f3f3f3;
     }
 
-    .hud{
-      position:absolute; top:70px; left:12px;
-      background: rgba(24,24,24,0.84);
-      color:#fff;
-      padding:12px 14px;
-      border-radius:12px;
-      font-size:14px;
-      z-index:10;
-      min-width:380px;
-      line-height:1.35;
-    }
-    .hud.right{
-      right:12px; left:auto;
-      text-align:right;
-      min-width:260px;
-    }
-    .hud .row{ display:flex; justify-content:space-between; gap:12px; margin-top:4px; }
-
-    .panel{
-      background: var(--panel);
-      padding:12px;
-      border-radius:14px;
-      box-shadow: var(--shadow);
-      font-size:13px;
-      color:#111;
-      margin-top:12px;
+    canvas {
+      display: block;
     }
 
-    table{ width:100%; border-collapse:collapse; font-size:12px; }
-    th, td{ padding:6px 8px; border-bottom:1px solid #eee; text-align:left; }
-    th{ font-size:11px; text-transform:uppercase; letter-spacing:0.08em; color:#666; }
-    .muted{ color:#666; }
-
-    .controls{
-      position:absolute; top:150px; right:12px;
-      width:320px; z-index:10;
-    }
-    .btn-row{ display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; }
-
-    button{
-      border:0; border-radius:999px;
-      padding:8px 12px;
-      cursor:pointer;
-      font-weight:800;
-      background:#2c2c2c;
-      color:#fff;
-    }
-    button.primary{ background: var(--vt-red); }
-    button.active{ background: var(--vt-accent); }
-
-    input{
-      width:100%;
-      padding:9px 12px;
-      border-radius:999px;
-      border:1px solid #ddd;
-      outline:none;
-      font-size:13px;
+    .controls {
+      position: fixed;
+      right: 12px;
+      top: 80px;
+      width: 300px;
+      background: #ffffff;
+      padding: 12px;
+      border-radius: 12px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+      z-index: 10;
     }
 
-    .toast{
-      position:fixed;
-      bottom:12px;
-      left:12px;
-      background:rgba(24,24,24,0.9);
-      color:#fff;
-      padding:10px 14px;
-      border-radius:12px;
-      box-shadow:var(--shadow);
-      font-size:13px;
-      max-width:680px;
-      z-index:40;
-      line-height:1.35;
+    button {
+      border: 0;
+      border-radius: 999px;
+      padding: 8px 12px;
+      font-weight: 700;
+      background: #333;
+      color: #fff;
+      cursor: pointer;
+      margin: 4px 0;
+      width: 100%;
+    }
+
+    button.primary {
+      background: #e60000;
+    }
+
+    #toast {
+      position: fixed;
+      bottom: 12px;
+      left: 12px;
+      background: rgba(0,0,0,0.85);
+      color: #fff;
+      padding: 10px 14px;
+      border-radius: 12px;
+      font-size: 13px;
     }
   </style>
 </head>
 
 <body>
-  <div class="brand-bar">
-    <strong>Spaghetti Tower Challenge</strong>
-    <span id="brandTeamLabel">Team/Person: —</span>
-  </div>
-
-  <div class="hud">
-    <div><strong>Goal:</strong> Build the tallest tower. The <strong>top piece</strong> must be highest when time ends.</div>
-
-    <div class="panel">
-      <strong>Teams / People</strong>
-      <div class="muted">A name is added when you press Start</div>
-      <div style="max-height:170px; overflow:auto; margin-top:8px;">
-        <table>
-          <thead>
-            <tr><th>#</th><th>Name</th><th>Height</th><th>Result</th></tr>
-          </thead>
-          <tbody id="teamsTableBody">
-            <tr><td colspan="4" class="muted">No teams added yet.</td></tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-  </div>
-
-  <div class="hud right">
-    <div class="row"><span>Timer</span><span id="timer">⏱ 10:00</span></div>
-    <div class="row"><span>Spaghetti</span><span id="materials">0</span></div>
-    <div class="row"><span>Height</span><span id="height">0 cm</span></div>
-  </div>
 
   <div class="controls">
-    <div class="panel">
-      <strong>Team / Person</strong>
-      <input id="teamName" placeholder="Enter name…" />
-
-      <div class="btn-row">
-        <button id="startBtn">Start</button>
-        <button id="stopBtn">Stop</button>
-        <button id="resetBtn">Reset</button>
-      </div>
-
-      <div class="btn-row">
-        <button id="addSpaghettiBtn" class="primary">Add spaghetti</button>
-        <button id="glueBtn">Glue (tape/string)</button>
-      </div>
-
-      <div class="muted" style="margin-top:10px;">
-        Tip: Drag sticks to stack. While dragging, sticks snap close-to-horizontal / vertical.
-      </div>
-    </div>
+    <input id="teamName" placeholder="Team / Person" style="width:100%;padding:8px;border-radius:999px;border:1px solid #ccc;" />
+    <button id="startBtn">Start</button>
+    <button id="stopBtn">Stop</button>
+    <button id="resetBtn">Reset</button>
+    <button id="addSpaghettiBtn" class="primary">Add spaghetti</button>
+    <button id="glueBtn">Glue (tape/string)</button>
   </div>
 
-  <div class="toast" id="toast">Ready. Enter a name and press Start.</div>
+  <div id="toast">Ready.</div>
 
   <canvas id="game"></canvas>
 
-  <!-- Matter.js -->
+  <!-- ✅ CORRECT Matter.js include -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
 
-  <!-- Your game -->
+  <!-- ✅ Game logic -->
   <script src="main.js"></script>
+
 </body>
 </html>
