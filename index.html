@@ -1,9 +1,9 @@
 <!DOCTYPE html>
 <html lang="en-GB">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="UTF-8">
   <title>Spaghetti Tower Challenge</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1">
 
   <style>
     body {
@@ -17,13 +17,13 @@
 
     .controls {
       position: fixed;
-      top: 20px;
-      right: 20px;
+      top: 24px;
+      right: 24px;
       width: 260px;
       background: white;
-      padding: 12px;
-      border-radius: 12px;
-      box-shadow: 0 10px 25px rgba(0,0,0,.2);
+      padding: 16px;
+      border-radius: 14px;
+      box-shadow: 0 10px 30px rgba(0,0,0,.2);
       z-index: 10;
     }
 
@@ -35,7 +35,7 @@
       border: none;
       background: #333;
       color: white;
-      font-weight: bold;
+      font-weight: 700;
       cursor: pointer;
     }
 
@@ -66,11 +66,9 @@
 
   <canvas id="game"></canvas>
 
-  <!-- ✅ THIS MUST BE EXACTLY LIKE THIS -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
-
-  <!-- ✅ Your code -->
-  <script src="main.js"></script>
+  <!-- ✅ MUST USE DEFER -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js" defer></script>
+  <script src="main.js" defer></script>
 
 </body>
 </html>
