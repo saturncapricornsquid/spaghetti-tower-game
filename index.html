@@ -31,19 +31,19 @@
 
     .hud{
       position:absolute; top:70px; left:12px;
-      background: rgba(24,24,24,0.86);
+      background: rgba(24,24,24,0.84);
       color:#fff;
       padding:12px 14px;
       border-radius:12px;
       font-size:14px;
       z-index:10;
-      min-width:320px;
+      min-width:360px;
       line-height:1.35;
     }
     .hud.right{
       right:12px; left:auto;
       text-align:right;
-      min-width:210px;
+      min-width:220px;
     }
     .hud .row{ display:flex; justify-content:space-between; gap:12px; }
     .hud small{ opacity:0.85; }
@@ -51,7 +51,7 @@
     .controls{
       position:absolute;
       top:150px; right:12px;
-      width:300px;
+      width:320px;
       display:flex;
       flex-direction:column;
       gap:10px;
@@ -93,7 +93,7 @@
       position:absolute;
       top:76px; left:50%;
       transform:translateX(-50%);
-      max-width:900px;
+      max-width:920px;
       background: var(--panel);
       padding:12px 16px;
       border-radius:14px;
@@ -116,13 +116,45 @@
       background:#fff;
     }
 
-    .status-pill{
-      margin-top:10px;
-      background: rgba(255,255,255,0.10);
-      border: 1px solid rgba(255,255,255,0.18);
+    /* Toast message */
+    .toast{
+      position:fixed;
+      left:12px;
+      bottom:12px;
+      max-width:min(560px, calc(100vw - 24px));
+      background: rgba(24,24,24,0.88);
+      color:#fff;
+      border: 1px solid rgba(255,255,255,0.12);
       padding:10px 12px;
       border-radius:12px;
+      z-index:40;
+      box-shadow: var(--shadow);
+      font-size:13px;
+      line-height:1.35;
     }
+
+    /* Teams table panel on the left */
+    .teams-panel{
+      margin-top:12px;
+    }
+    table{
+      width:100%;
+      border-collapse:collapse;
+      font-size:12px;
+      color:#111;
+    }
+    th, td{
+      text-align:left;
+      padding:6px 8px;
+      border-bottom:1px solid #eee;
+    }
+    th{
+      font-size:11px;
+      text-transform:uppercase;
+      letter-spacing:0.08em;
+      color:#666;
+    }
+    .muted{ color:#666; font-size:12px; }
   </style>
 </head>
 
@@ -132,18 +164,34 @@
     <span id="brandTeamLabel">Team/Person: —</span>
   </div>
 
-  <div class="hud" id="status">
+  <div class="hud" id="statusPanel">
     <div><strong>Goal:</strong> Build the tallest free‑standing tower. The <strong>top spaghetti piece</strong> (pink circle) must be the highest point when time ends.</div>
-    <div class="status-pill" id="statusMessage">Click empty space to add spaghetti (max 20). Drag to move. Rotate with Q/E or mouse wheel.</div>
+
     <div class="icon-wrap">
       <img src="spaghetti-tower.png" alt="Spaghetti tower" />
-      <div><small>Tip:</small> Use triangles + glue ends for stability.</div>
+      <div><small>Tip:</small> Glue <strong>ends</strong> and build triangles for stability.</div>
+    </div>
+
+    <!-- ✅ Teams table under the goal panel -->
+    <div class="panel teams-panel">
+      <strong>Teams / People</strong>
+      <div class="muted" style="margin-top:4px;">Names are added when you press Start.</div>
+      <div style="margin-top:8px; max-height:160px; overflow:auto;">
+        <table>
+          <thead>
+            <tr><th>#</th><th>Name</th></tr>
+          </thead>
+          <tbody id="teamsTableBody">
+            <tr><td colspan="2" class="muted">No names added yet.</td></tr>
+          </tbody>
+        </table>
+      </div>
     </div>
   </div>
 
   <div class="hud right">
     <div class="row"><span><strong>Timer</strong></span><span id="timer">⏱ 10:00</span></div>
-    <div class="row"><span><strong>Spaghetti</strong></span><span id="materials">0/20</span></div>
+    <div class="row"><span><strong>Spaghetti</strong></span><span id="materials">0</span></div>
     <div class="row"><span><strong>Height</strong></span><span id="height">0 cm</span></div>
   </div>
 
@@ -151,28 +199,35 @@
     <div class="panel">
       <strong>Team / Person name</strong><br><br>
       <input id="teamName" placeholder="Type team or person name…" />
+
       <div class="btn-row">
         <button id="startBtn" class="secondary">Start</button>
         <button id="stopBtn" class="secondary">Stop</button>
-        <button id="resetBtn" class="ghost">Reset</button>
+        <!-- ✅ Reset now same colour as Start/Stop -->
+        <button id="resetBtn" class="secondary">Reset</button>
       </div>
 
       <div class="btn-row">
+        <button id="addSpaghettiBtn">Add spaghetti</button>
         <button id="glueBtn" class="secondary">Glue (tape / string)</button>
       </div>
 
       <div style="margin-top:10px; font-size:12px; color:#444;">
         • Drag pieces to move<br>
-        • Rotate selected stick: <strong>Q</strong>/<strong>E</strong> or mouse wheel<br>
+        • Rotate selected stick: <strong>Q</strong>/<strong>E</strong> (keyboard) or mouse wheel<br>
         • Glue ON: click one stick, then another to glue at their <strong>ends</strong>
       </div>
     </div>
   </div>
 
   <div class="instructions">
-    <strong>Rules</strong> — 10 minutes. Use up to <strong>20 spaghetti sticks</strong>. Glue with tape/string.
+    <strong>Rules</strong> — 10 minutes. Use as much spaghetti as you want. Glue with tape/string.
     The <strong>top spaghetti piece</strong> must be the highest point and the structure must stand without support.
     When the timer ends: <strong>hands off</strong>.
+  </div>
+
+  <div class="toast" id="toast">
+    Press <strong>Start</strong> to begin. Add spaghetti, drag to move, rotate with <strong>Q/E</strong> or mouse wheel. Use <strong>Glue ON</strong> to glue stick ends.
   </div>
 
   <canvas id="game"></canvas>
