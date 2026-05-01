@@ -37,7 +37,7 @@ Runner.run(Runner.create(), engine);
 let ground;
 let spaghetti = [];
 let joints = [];
-let spaghetti = null;
+let topPiece= null;
 let selectedBody = null;
 
 function createGround() {
