@@ -7,9 +7,14 @@ const {
 const MAX_SPAGHETTI = 20;
 const GAME_DURATION = 10 * 60;
 
+// How close (in pixels) the top piece must be to count as "highest"
+const TOP_TOLERANCE_PX = 3;
+
 const canvas = document.getElementById("game");
 const statusEl = document.getElementById("status");
 const timerEl = document.getElementById("timer");
+const teamNameInput = document.getElementById("teamName");
+const brandTeamLabel = document.getElementById("brandTeamLabel");
 
 let glueMode = false;
 let timeLeft = GAME_DURATION;
@@ -40,6 +45,30 @@ let joints = [];
 let topPiece = null;
 let selectedBody = null;
 
+/* ✅ Get team/person name safely */
+function getTeamName() {
+  if (teamNameInput && teamNameInput.value.trim() && teamNameInput.value.trim() !== "Team: —") {
+    return teamNameInput.value.trim();
+  }
+  if (brandTeamLabel && brandTeamLabel.textContent) {
+    return brandTeamLabel.textContent.replace("Team/Person:", "").trim() || "Unnamed team/person";
+  }
+  return "Unnamed team/person";
+}
+
+/* ✅ Keep top label synced with input */
+function syncTeamLabel() {
+  const name = getTeamName();
+  if (brandTeamLabel) brandTeamLabel.textContent = `Team/Person: ${name}`;
+}
+
+if (teamNameInput) {
+  // Initialise clean default and label sync
+  if (teamNameInput.value === "Team: —") teamNameInput.value = "";
+  teamNameInput.addEventListener("input", syncTeamLabel);
+}
+syncTeamLabel();
+
 /* ✅ Ground */
 function createGround() {
   if (ground) World.remove(world, ground);
@@ -48,12 +77,32 @@ function createGround() {
     window.innerHeight - 20,
     window.innerWidth,
     40,
-    { isStatic: true }
+    { isStatic: true, render: { fillStyle: "#cbd5e1" } }
   );
   World.add(world, ground);
 }
 
+/* ✅ Top spaghetti piece (pink circle) */
+function createTopPiece() {
+  if (topPiece) World.remove(world, topPiece);
+
+  topPiece = Bodies.circle(
+    window.innerWidth / 2,
+    window.innerHeight / 2 - 120,
+    18,
+    {
+      restitution: 0.1,
+      friction: 0.8,
+      label: "topSpaghettiPiece",
+      render: { fillStyle: "#ffd6e7", strokeStyle: "#fb7185", lineWidth: 2 }
+    }
+  );
+
+  World.add(world, topPiece);
+}
+
 createGround();
+createTopPiece();
 
 /* ✅ Mouse */
 const mouse = Mouse.create(render.canvas);
@@ -73,7 +122,7 @@ Events.on(mouseConstraint, "enddrag", () => {
   selectedBody = null;
 });
 
-/* ✅ Rotate spaghetti like real life */
+/* ✅ Rotate spaghetti */
 window.addEventListener("wheel", e => {
   if (!selectedBody || paused || gameEnded) return;
   Body.rotate(selectedBody, e.deltaY * 0.002);
@@ -100,41 +149,69 @@ canvas.addEventListener("mousedown", () => {
   const bodies = Composite.allBodies(world).filter(b => b !== ground);
   const hit = bodies.find(b => Bounds.contains(b.bounds, pos));
 
-  // Add spaghetti
+  // Add spaghetti stick on empty click (until limit)
   if (!hit && spaghetti.length < MAX_SPAGHETTI) {
-    const stick = Bodies.rectangle(pos.x, pos.y, 80, 6);
+    const stick = Bodies.rectangle(pos.x, pos.y, 80, 6, {
+      friction: 0.7,
+      restitution: 0.05,
+      render: { fillStyle: "#f7c948", strokeStyle: "#d97706", lineWidth: 1 }
+    });
     spaghetti.push(stick);
     World.add(world, stick);
-    statusEl.textContent = "Spaghetti added";
+    statusEl.innerHTML = "Spaghetti added. Keep building — the top spaghetti piece must be the highest at the end.";
     return;
   }
 
-  // Glue mode
+  // Glue mode: connect selected body to hit body
   if (glueMode && selectedBody && hit && hit !== selectedBody) {
     const joint = Constraint.create({
       bodyA: selectedBody,
       bodyB: hit,
-      stiffness: 0.8
+      stiffness: 0.8,
+      render: { strokeStyle: "#8f2bd1", lineWidth: 2 }
     });
     joints.push(joint);
     World.add(world, joint);
-    statusEl.textContent = "Pieces glued together";
+    statusEl.innerHTML = "Pieces glued together. Triangles usually improve stability.";
   }
 });
 
+/* ✅ Winner check (top piece must be highest) */
+function evaluateResult() {
+  const name = getTeamName();
+
+  if (!topPiece) {
+    statusEl.innerHTML = `<strong>NO WINNER</strong> — no top spaghetti piece was placed.`;
+    return;
+  }
+
+  const bodies = Composite.allBodies(world).filter(b => b !== ground);
+
+  // Highest point = smallest bounds.min.y
+  const highestY = Math.min(...bodies.map(b => b.bounds.min.y));
+  const topY = topPiece.bounds.min.y;
+
+  const topIsHighest = topY <= highestY + TOP_TOLERANCE_PX;
+
+  if (topIsHighest) {
+    statusEl.innerHTML = `🏆 <strong>WINNING TEAM / PERSON IS:</strong> ${name}`;
+  } else {
+    statusEl.innerHTML = `<strong>NO WINNER</strong> — the top spaghetti piece was not the highest.`;
+  }
+}
+
 /* ✅ Timer */
-setInterval(() => {
+const timerHandle = setInterval(() => {
   if (paused || gameEnded) return;
 
   timeLeft--;
-  timerEl.textContent =
-    `⏱ ${Math.floor(timeLeft / 60)}:${String(timeLeft % 60).padStart(2, "0")}`;
+  timerEl.textContent = `⏱ ${Math.floor(timeLeft / 60)}:${String(timeLeft % 60).padStart(2, "0")}`;
 
   if (timeLeft <= 0) {
     gameEnded = true;
     paused = true;
-    statusEl.textContent =
-      "Time’s up! Hands off. Ensure the top spaghetti piece is highest and unsupported.";
+    evaluateResult();
+    clearInterval(timerHandle);
   }
 }, 1000);
 
@@ -144,5 +221,17 @@ window.addEventListener("resize", () => {
   render.canvas.height = window.innerHeight;
   render.options.width = window.innerWidth;
   render.options.height = window.innerHeight;
+
   createGround();
+
+  // Keep top piece after resize (optional reposition)
+  if (topPiece) {
+    Body.setPosition(topPiece, {
+      x: window.innerWidth / 2,
+      y: Math.min(topPiece.position.y, window.innerHeight - 200)
+    });
+  } else {
+    createTopPiece();
+  }
 });
+``
