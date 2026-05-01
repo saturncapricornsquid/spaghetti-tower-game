@@ -4,35 +4,38 @@ const {
   Events, Bounds, Body, Vector
 } = Matter;
 
-const MAX_SPAGHETTI = 20;
 const GAME_DURATION = 10 * 60;
-
-// How close (in pixels) the top piece must be to count as "highest"
 const TOP_TOLERANCE_PX = 3;
-
-// Height conversion: px -> cm (tweak if you want)
 const PX_PER_CM = 4;
 
+// DOM
 const canvas = document.getElementById("game");
-const statusWrapEl = document.getElementById("status");
-const statusMsgEl = document.getElementById("statusMessage");
+const toastEl = document.getElementById("toast");
 const timerEl = document.getElementById("timer");
 const materialsEl = document.getElementById("materials");
 const heightEl = document.getElementById("height");
 
 const teamNameInput = document.getElementById("teamName");
 const brandTeamLabel = document.getElementById("brandTeamLabel");
+const teamsTableBody = document.getElementById("teamsTableBody");
 
 const glueBtn = document.getElementById("glueBtn");
+const addSpaghettiBtn = document.getElementById("addSpaghettiBtn");
 const startBtn = document.getElementById("startBtn");
 const stopBtn = document.getElementById("stopBtn");
 const resetBtn = document.getElementById("resetBtn");
 
+// State
 let glueMode = false;
+let glueFirst = null;
+let hoveredBody = null;
+
 let timeLeft = GAME_DURATION;
 let running = false;
 let paused = true;
 let gameEnded = false;
+
+let teams = []; // ✅ list of team/person names
 
 const engine = Engine.create();
 engine.gravity.y = 1;
@@ -61,14 +64,22 @@ let selectedBody = null;
 
 /* ---------- UI helpers ---------- */
 
-function setStatus(html) {
-  if (statusMsgEl) statusMsgEl.innerHTML = html;
+function setToast(html) {
+  if (toastEl) toastEl.innerHTML = html;
 }
 
 function formatTime(seconds) {
   const m = Math.floor(seconds / 60);
   const s = String(seconds % 60).padStart(2, "0");
   return `${m}:${s}`;
+}
+
+function updateTimerUI() {
+  if (timerEl) timerEl.textContent = `⏱ ${formatTime(timeLeft)}`;
+}
+
+function updateMaterials() {
+  if (materialsEl) materialsEl.textContent = `${spaghetti.length}`;
 }
 
 function getTeamName() {
@@ -82,18 +93,39 @@ function syncTeamLabel() {
   const name = getTeamName();
   if (brandTeamLabel) brandTeamLabel.textContent = `Team/Person: ${name}`;
 }
-
-if (teamNameInput) {
-  teamNameInput.addEventListener("input", syncTeamLabel);
-}
+if (teamNameInput) teamNameInput.addEventListener("input", syncTeamLabel);
 syncTeamLabel();
 
-function updateMaterials() {
-  if (materialsEl) materialsEl.textContent = `${spaghetti.length}/${MAX_SPAGHETTI}`;
+/* ---------- Teams table ---------- */
+
+function renderTeamsTable() {
+  if (!teamsTableBody) return;
+
+  if (teams.length === 0) {
+    teamsTableBody.innerHTML = `<tr><td colspan="2" class="muted">No names added yet.</td></tr>`;
+    return;
+  }
+
+  teamsTableBody.innerHTML = teams
+    .map((name, idx) => `<tr><td>${idx + 1}</td><td>${escapeHtml(name)}</td></tr>`)
+    .join("");
 }
 
-function updateTimerUI() {
-  if (timerEl) timerEl.textContent = `⏱ ${formatTime(timeLeft)}`;
+function escapeHtml(str) {
+  return str.replace(/[&<>"']/g, (m) => ({
+    "&":"&amp;", "<":"&lt;", ">":"&gt;", "\"":"&quot;", "'":"&#039;"
+  }[m]));
+}
+
+function addTeamIfNeeded() {
+  const name = getTeamName();
+  if (!name || name.toLowerCase() === "unnamed team/person") return;
+
+  const exists = teams.some(t => t.toLowerCase() === name.toLowerCase());
+  if (!exists) {
+    teams.push(name);
+    renderTeamsTable();
+  }
 }
 
 /* ---------- World setup ---------- */
@@ -105,10 +137,7 @@ function createGround() {
     window.innerHeight - 20,
     window.innerWidth,
     40,
-    {
-      isStatic: true,
-      render: { fillStyle: "#cbd5e1" }
-    }
+    { isStatic: true, render: { fillStyle: "#cbd5e1" } }
   );
   World.add(world, ground);
 }
@@ -132,12 +161,13 @@ function createTopPiece() {
 }
 
 function clearWorld() {
-  // Remove all bodies & constraints except engine itself
   Composite.clear(world, false);
   spaghetti = [];
   joints = [];
   topPiece = null;
   selectedBody = null;
+  glueFirst = null;
+  hoveredBody = null;
 }
 
 function resetGame() {
@@ -161,12 +191,13 @@ function resetGame() {
   updateMaterials();
   if (heightEl) heightEl.textContent = "0 cm";
 
-  setStatus("Press <strong>Start</strong> to begin. Click empty space to add spaghetti, drag to move, rotate with Q/E or mouse wheel.");
+  setToast("Press <strong>Start</strong> to begin. Add spaghetti, drag to move, rotate with <strong>Q/E</strong> or mouse wheel. Use <strong>Glue ON</strong> to glue stick ends.");
 }
 
 createGround();
 createTopPiece();
-resetGame(); // sets timescale=0 and UI
+renderTeamsTable();
+resetGame();
 
 /* ---------- Mouse / dragging ---------- */
 
@@ -175,7 +206,6 @@ const mouseConstraint = MouseConstraint.create(engine, {
   mouse,
   constraint: { stiffness: 0.2, render: { visible: false } }
 });
-
 World.add(world, mouseConstraint);
 render.mouse = mouse;
 
@@ -187,7 +217,14 @@ Events.on(mouseConstraint, "enddrag", () => {
   selectedBody = null;
 });
 
-/* Rotate selected spaghetti (so it can stand upright / angled) */
+Events.on(engine, "afterUpdate", () => {
+  const pos = mouse.position;
+  const bodies = Composite.allBodies(world).filter(b => b !== ground);
+  hoveredBody = bodies.find(b => Bounds.contains(b.bounds, pos)) || null;
+});
+
+/* Rotation shortcuts:
+   Q = anti-clockwise, E = clockwise */
 window.addEventListener("wheel", e => {
   if (!selectedBody || paused || gameEnded) return;
   Body.rotate(selectedBody, e.deltaY * 0.002);
@@ -199,7 +236,31 @@ window.addEventListener("keydown", e => {
   if (e.key === "e" || e.key === "E") Body.rotate(selectedBody, 0.05);
 });
 
-/* ---------- Glue: endpoint-to-endpoint ---------- */
+/* ---------- Spaghetti creation ---------- */
+
+function addSpaghettiAt(x, y) {
+  const stick = Bodies.rectangle(x, y, 90, 7, {
+    friction: 0.8,
+    restitution: 0.02,
+    frictionAir: 0.02,
+    // darker spaghetti colour
+    render: { fillStyle: "#7a3f00", strokeStyle: "#4b2600", lineWidth: 1 }
+  });
+
+  spaghetti.push(stick);
+  World.add(world, stick);
+  updateMaterials();
+  return stick;
+}
+
+addSpaghettiBtn.onclick = () => {
+  if (!running || paused || gameEnded) return;
+  const stick = addSpaghettiAt(window.innerWidth / 2, window.innerHeight / 2);
+  setToast(`Spaghetti added. Using <strong>${spaghetti.length}</strong>. Drag it into place.`);
+  selectedBody = stick;
+};
+
+/* ---------- Glue: endpoint snap + stabilised weld ---------- */
 
 function rotateLocalToWorld(local, body) {
   const rotated = Vector.rotate(local, body.angle);
@@ -212,17 +273,12 @@ function worldToLocal(worldPoint, body) {
 }
 
 function getStickEndpoints(body) {
-  // For circles (top piece), "endpoint" is just its centre
-  if (body.circleRadius) {
-    return [ { x: body.position.x, y: body.position.y } ];
-  }
+  if (body.circleRadius) return [{ x: body.position.x, y: body.position.y }];
 
-  // For rectangles: derive endpoints from vertices in local coords
   const locals = body.vertices.map(v => worldToLocal(v, body));
   const minX = Math.min(...locals.map(p => p.x));
   const maxX = Math.max(...locals.map(p => p.x));
 
-  // Average the two vertices at each extreme to get a mid-point on that end
   const leftVs  = locals.filter(p => Math.abs(p.x - minX) < 0.01);
   const rightVs = locals.filter(p => Math.abs(p.x - maxX) < 0.01);
 
@@ -235,10 +291,7 @@ function getStickEndpoints(body) {
     y: rightVs.length ? (rightVs[0].y + (rightVs[1]?.y ?? rightVs[0].y)) / 2 : 0
   };
 
-  const leftWorld = rotateLocalToWorld(leftLocal, body);
-  const rightWorld = rotateLocalToWorld(rightLocal, body);
-
-  return [ leftWorld, rightWorld ];
+  return [rotateLocalToWorld(leftLocal, body), rotateLocalToWorld(rightLocal, body)];
 }
 
 function nearestEndpoint(body, clickPos) {
@@ -252,40 +305,87 @@ function nearestEndpoint(body, clickPos) {
   return best;
 }
 
+// Snap endpoints together immediately
+function snapEndpoints(bodyA, bodyB, clickPos) {
+  const aWorld = nearestEndpoint(bodyA, clickPos);
+  const bWorld = nearestEndpoint(bodyB, clickPos);
+  const delta = Vector.sub(aWorld, bWorld);
+
+  Body.setPosition(bodyB, Vector.add(bodyB.position, delta));
+  Body.setVelocity(bodyB, { x: 0, y: 0 });
+  Body.setVelocity(bodyA, { x: 0, y: 0 });
+  Body.setAngularVelocity(bodyB, 0);
+  Body.setAngularVelocity(bodyA, 0);
+}
+
+// Create an endpoint-to-endpoint constraint (main weld)
 function createEndpointConstraint(bodyA, bodyB, clickPos) {
   const aWorld = nearestEndpoint(bodyA, clickPos);
   const bWorld = nearestEndpoint(bodyB, clickPos);
-
   const pointA = worldToLocal(aWorld, bodyA);
   const pointB = worldToLocal(bWorld, bodyB);
 
   return Constraint.create({
     bodyA, bodyB,
     pointA, pointB,
-    stiffness: 0.9,
-    damping: 0.05,
+    stiffness: 0.995,
+    damping: 0.22,
+    length: 0,
     render: { strokeStyle: "#8f2bd1", lineWidth: 3 }
   });
 }
 
-/* ---------- Buttons ---------- */
+// Secondary stabiliser constraint to reduce wobble (helps it “stand”)
+function createStabiliserConstraint(bodyA, bodyB) {
+  return Constraint.create({
+    bodyA, bodyB,
+    pointA: { x: 0, y: 0 },
+    pointB: { x: 0, y: 0 },
+    stiffness: 0.22,
+    damping: 0.28,
+    length: 0,
+    render: { strokeStyle: "rgba(143,43,209,0.35)", lineWidth: 2 }
+  });
+}
+
+// Apply extra damping after glue so it settles quickly
+function stabiliseBodies(bodyA, bodyB) {
+  bodyA.frictionAir = Math.max(bodyA.frictionAir || 0, 0.06);
+  bodyB.frictionAir = Math.max(bodyB.frictionAir || 0, 0.06);
+
+  Body.setVelocity(bodyA, { x: 0, y: 0 });
+  Body.setVelocity(bodyB, { x: 0, y: 0 });
+  Body.setAngularVelocity(bodyA, 0);
+  Body.setAngularVelocity(bodyB, 0);
+}
+
+/* ---------- Glue button ---------- */
 
 glueBtn.onclick = () => {
   glueMode = !glueMode;
+  glueFirst = null;
+
   glueBtn.classList.toggle("active", glueMode);
-  glueBtn.textContent = glueMode ? "Glue ON (click two stick ends)" : "Glue (tape / string)";
-  setStatus(glueMode
-    ? "Glue is <strong>ON</strong>: click one stick, then click another to glue at their <strong>ends</strong>."
-    : "Glue is <strong>OFF</strong>: click empty space to add spaghetti. Drag to move. Rotate with Q/E or mouse wheel."
+  glueBtn.textContent = glueMode ? "Glue ON (pick 2 sticks)" : "Glue (tape / string)";
+
+  setToast(glueMode
+    ? "Glue is <strong>ON</strong>: click a first stick, then click a second stick to glue at their <strong>ends</strong>."
+    : "Glue is <strong>OFF</strong>: add spaghetti, drag to move, rotate with <strong>Q/E</strong> or mouse wheel."
   );
 };
 
+/* ---------- Start/Stop/Reset ---------- */
+
 startBtn.onclick = () => {
   if (gameEnded) return;
+
+  // ✅ add name into left table when Start is pressed
+  addTeamIfNeeded();
+
   running = true;
   paused = false;
   engine.timing.timeScale = 1;
-  setStatus("Building started. Good luck!");
+  setToast("Building started. Add spaghetti, drag to move, rotate with <strong>Q/E</strong> or mouse wheel.");
 };
 
 stopBtn.onclick = () => {
@@ -293,14 +393,12 @@ stopBtn.onclick = () => {
   paused = !paused;
   engine.timing.timeScale = paused ? 0 : 1;
   stopBtn.textContent = paused ? "Resume" : "Stop";
-  setStatus(paused ? "Paused." : "Resumed.");
+  setToast(paused ? "Paused." : "Resumed.");
 };
 
-resetBtn.onclick = () => {
-  resetGame();
-};
+resetBtn.onclick = () => resetGame();
 
-/* ---------- Placement & glue interaction ---------- */
+/* ---------- Canvas interaction: add or glue ---------- */
 
 canvas.addEventListener("mousedown", () => {
   if (!running || paused || gameEnded) return;
@@ -309,28 +407,41 @@ canvas.addEventListener("mousedown", () => {
   const bodies = Composite.allBodies(world).filter(b => b !== ground);
   const hit = bodies.find(b => Bounds.contains(b.bounds, pos));
 
-  // Add spaghetti stick on empty click (until limit)
-  if (!hit && spaghetti.length < MAX_SPAGHETTI) {
-    const stick = Bodies.rectangle(pos.x, pos.y, 90, 7, {
-      friction: 0.75,
-      restitution: 0.03,
-      // ✅ darker spaghetti colour
-      render: { fillStyle: "#8a4b00", strokeStyle: "#5a2f00", lineWidth: 1 }
-    });
-
-    spaghetti.push(stick);
-    World.add(world, stick);
-    updateMaterials();
-    setStatus(`Spaghetti added. Using <strong>${spaghetti.length}/${MAX_SPAGHETTI}</strong>.`);
+  // Click empty space => add spaghetti
+  if (!hit) {
+    const stick = addSpaghettiAt(pos.x, pos.y);
+    setToast(`Spaghetti added. Using <strong>${spaghetti.length}</strong>. Drag it into place.`);
+    selectedBody = stick;
     return;
   }
 
-  // Glue mode: click selected body then another body to glue
-  if (glueMode && selectedBody && hit && hit !== selectedBody) {
-    const joint = createEndpointConstraint(selectedBody, hit, pos);
-    joints.push(joint);
-    World.add(world, joint);
-    setStatus("Glue added to <strong>stick ends</strong> for better stability.");
+  // Glue flow: click first body then second body
+  if (glueMode) {
+    if (!glueFirst) {
+      glueFirst = hit;
+      setToast("Glue: first stick selected. Now click the second stick to glue their <strong>ends</strong>.");
+      return;
+    }
+
+    if (hit === glueFirst) {
+      setToast("Glue: first stick re-selected. Click a different second stick to glue.");
+      return;
+    }
+
+    // ✅ Snap, glue, stabilise (so it stands)
+    snapEndpoints(glueFirst, hit, pos);
+
+    const weld = createEndpointConstraint(glueFirst, hit, pos);
+    const stabiliser = createStabiliserConstraint(glueFirst, hit);
+    joints.push(weld, stabiliser);
+
+    World.add(world, weld);
+    World.add(world, stabiliser);
+
+    stabiliseBodies(glueFirst, hit);
+
+    setToast("Glue added at stick <strong>ends</strong> and stabilised so it holds firm.");
+    glueFirst = null;
   }
 });
 
@@ -352,10 +463,7 @@ function updateHeight() {
 
   heightEl.textContent = `${heightCm} cm`;
 }
-
-Events.on(engine, "afterUpdate", () => {
-  updateHeight();
-});
+Events.on(engine, "afterUpdate", () => updateHeight());
 
 /* ---------- End-of-game winner logic ---------- */
 
@@ -363,7 +471,7 @@ function evaluateResult() {
   const name = getTeamName();
 
   if (!topPiece) {
-    setStatus("<strong>NO WINNER</strong> — no top spaghetti piece found.");
+    setToast("<strong>NO WINNER</strong> — no top spaghetti piece found.");
     return;
   }
 
@@ -374,18 +482,18 @@ function evaluateResult() {
   const topIsHighest = topY <= highestY + TOP_TOLERANCE_PX;
 
   if (topIsHighest) {
-    setStatus(`🏆 <strong>WINNING TEAM / PERSON IS:</strong> ${name}`);
+    setToast(`🏆 <strong>WINNING TEAM / PERSON IS:</strong> ${escapeHtml(name)}`);
   } else {
-    setStatus("<strong>NO WINNER</strong> — the top spaghetti piece was not the highest.");
+    setToast("<strong>NO WINNER</strong> — the top spaghetti piece was not the highest.");
   }
 }
 
-/* ---------- Timer loop (Start-controlled) ---------- */
+/* ---------- Timer loop ---------- */
 
 updateTimerUI();
 updateMaterials();
 
-const timerHandle = setInterval(() => {
+setInterval(() => {
   if (!running || paused || gameEnded) return;
 
   timeLeft--;
@@ -400,6 +508,33 @@ const timerHandle = setInterval(() => {
   }
 }, 1000);
 
+/* ---------- Endpoint hint dots (visual glue feedback) ---------- */
+
+Events.on(render, "afterRender", () => {
+  if (!glueMode) return;
+
+  const ctx = render.context;
+
+  const drawDots = (body, colour) => {
+    if (!body) return;
+    const pts = getStickEndpoints(body);
+    ctx.save();
+    ctx.fillStyle = colour;
+    ctx.strokeStyle = "rgba(0,0,0,0.25)";
+    ctx.lineWidth = 2;
+    pts.forEach(p => {
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, 6, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+    });
+    ctx.restore();
+  };
+
+  drawDots(glueFirst, "rgba(143,43,209,0.85)");
+  if (hoveredBody && hoveredBody !== glueFirst) drawDots(hoveredBody, "rgba(143,43,209,0.35)");
+});
+
 /* ---------- Resize fix ---------- */
 
 window.addEventListener("resize", () => {
@@ -408,10 +543,8 @@ window.addEventListener("resize", () => {
   render.options.width = window.innerWidth;
   render.options.height = window.innerHeight;
 
-  // Rebuild ground to match new width
   createGround();
 
-  // Keep top piece reasonably placed
   if (topPiece) {
     Body.setPosition(topPiece, {
       x: window.innerWidth / 2,
