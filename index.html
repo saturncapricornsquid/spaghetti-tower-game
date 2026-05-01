@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>VodafoneThree Spaghetti Challenge</title>
+  <title>Spaghetti Tower Challenge</title>
 
   <style>
     :root {
@@ -29,9 +29,7 @@
 
     .brand-bar {
       position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
+      top: 0; left: 0; right: 0;
       height: 56px;
       display: flex;
       justify-content: space-between;
@@ -52,20 +50,21 @@
       border-radius: 12px;
       font-size: 14px;
       z-index: 10;
-      min-width: 200px;
+      min-width: 260px;
     }
 
     .hud.right {
       right: 12px;
       left: auto;
       text-align: right;
+      min-width: 160px;
     }
 
     .controls {
       position: absolute;
       top: 150px;
       right: 12px;
-      width: 240px;
+      width: 260px;
       display: flex;
       flex-direction: column;
       gap: 10px;
@@ -95,7 +94,6 @@
       background: var(--vt-red);
       color: white;
     }
-
     button.secondary { background: var(--vt-charcoal); }
     button.ghost { background: #eee; color: #333; }
 
@@ -111,57 +109,77 @@
       box-shadow: var(--shadow);
       font-size: 13px;
       pointer-events: none;
-      text-align: centre;
+      text-align: center;
       z-index: 9;
+    }
+
+    .icon-wrap {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-top: 8px;
+    }
+
+    .icon-wrap img {
+      width: 44px;
+      height: 44px;
+      border-radius: 10px;
+      object-fit: cover;
+      box-shadow: 0 6px 18px rgba(0,0,0,0.18);
+    }
+
+    .hint {
+      font-size: 12px;
+      color: rgba(255,255,255,0.85);
+      margin-top: 6px;
+      line-height: 1.3;
     }
   </style>
 </head>
 
 <body>
   <div class="brand-bar">
-    <strong>VodafoneThree Spaghetti Challenge</strong>
+    <strong>Spaghetti Tower Challenge</strong>
     <span id="brandTeamLabel">Team: —</span>
   </div>
 
-  <div class="hud" id="status"></div>
-  <div class="hud right" id="timer"></div>
+  <!-- Left HUD: status -->
+  <div class="hud" id="status">
+    Build the tallest free-standing tower. Place the <strong>top spaghetti piece</strong> highest before time ends.
+    <div class="hint">Tip: Use Glue ON to connect pieces (tape/string). Rotate selected stick with Q/E or mouse wheel.</div>
+    <div class="icon-wrap">
+      <img src="spaghetti-tower.png" alt="Spaghetti tower icon" />
+      <div>Top piece = the pink circle in the game.</div>
+    </div>
+  </div>
 
+  <!-- Right HUD: timer -->
+  <div class="hud right" id="timer">⏱ 10:00</div>
+
+  <!-- Controls -->
   <div class="controls">
     <div class="panel">
-      <strong>Facilitator controls</strong><br><br>
+      <strong>Controls</strong><br><br>
       <div class="btn-row">
         <button id="glueBtn" class="secondary">Glue (tape / string)</button>
-        <button id="pauseBtn" class="secondary">Pause</button>
-        <button id="resetBtn" class="ghost">Reset run</button>
       </div>
-    </div>
-
-    <div class="panel">
-      <strong>Current team</strong><br>
-      <div id="currentTeamSummary">Not started yet.</div>
+      <div style="margin-top:10px; font-size:12px; color:#444;">
+        Click empty space to place spaghetti sticks (max 20). Drag to move. Rotate with Q/E or mouse wheel.
+      </div>
     </div>
   </div>
 
   <div class="instructions">
-    <strong>Spaghetti Challenge – Instructions</strong><br><br>
-
-    You have <strong>10 minutes</strong> to build the tallest
-    <strong>free‑standing</strong> structure.<br><br>
-
-    • Use up to <strong>20 spaghetti sticks</strong><br>
-    • Use as much or as little <strong>tape (glue)</strong> and <strong>string</strong> as you wish<br>
-    • You may <strong>break spaghetti</strong> and reposition pieces<br>
-    • The <strong>entire spaghetti must be on top</strong><br>
-    • The structure must stand <strong>without support</strong><br><br>
-
-    When the timer ends, <strong>hands off</strong>.
-    Any structure being touched or supported is disqualified.
+    <strong>Rules</strong> — 10 minutes. Use up to <strong>20 spaghetti sticks</strong>. Glue with tape/string.
+    The <strong>top spaghetti piece</strong> must be the highest point and the structure must stand without support.
+    When the timer ends: <strong>hands off</strong>.
   </div>
 
   <canvas id="game"></canvas>
 
-  <!-- ✅ CORRECT Matter.js include -->
+  <!-- Matter.js -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
+  <!-- Your game -->
   <script src="main.js"></script>
 </body>
 </html>
