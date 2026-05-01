@@ -13,6 +13,10 @@
   const RULER_X = 60;
   const TICK_CM = 25;
 
+  // Snap-to-angle settings
+  const SNAP_DEGREES = 8; // snap when within 8 degrees of 0/90
+  const SNAP_RAD = (SNAP_DEGREES * Math.PI) / 180;
+
   // Collision categories
   const CAT_DRAGGABLE = 0x0001; // spaghetti + top piece
   const CAT_WALLS     = 0x0002; // boundaries
@@ -51,6 +55,9 @@
   let hoveredBody = null;
   let currentHeightCm = 0;
 
+  // Track dragging (for snap-to-angle)
+  let draggingBody = null;
+
   // Engine
   const engine = Engine.create();
   engine.gravity.y = 1;
@@ -76,13 +83,13 @@
   const mouseConstraint = MouseConstraint.create(engine, {
     mouse,
     constraint: {
-      stiffness: 0.18,
-      damping: 0.10,
+      stiffness: 0.06,         // softer = less jumping
+      damping: 0.25,           // more damping = calmer
+      angularStiffness: 0,
       render: { visible: false }
     },
-    // Only interact with draggable bodies (this is what MouseConstraint collisionFilter is for) [1](https://brm.io/matter-js/docs/classes/MouseConstraint.html)[2](https://github.com/liabru/matter-js/issues/48)
     collisionFilter: {
-      mask: CAT_DRAGGABLE
+      mask: CAT_DRAGGABLE      // only draggable objects can be grabbed [2](https://brm.io/matter-js/docs/classes/MouseConstraint.html)[3](https://stackoverflow.com/questions/64772783/how-can-i-change-the-collisionfilter-of-an-object-so-it-can-no-longer-interact-w)
     }
   });
 
@@ -188,7 +195,7 @@
   }
 
   function resetWorldOnly() {
-    // This clears bodies/constraints — including MouseConstraint — so we MUST re-add it after. (This was the drag bug.)
+    // Clears bodies and constraints (including mouseConstraint) → must re-add
     Composite.clear(world, false);
 
     spaghetti = [];
@@ -196,6 +203,7 @@
     selectedBody = null;
     hoveredBody = null;
     glueFirst = null;
+    draggingBody = null;
 
     ground = leftWall = rightWall = ceiling = topPiece = null;
 
@@ -203,7 +211,6 @@
     createWorldBounds();
     createTopPiece();
 
-    // ✅ Re-add mouseConstraint AFTER clearing world so dragging works again [1](https://brm.io/matter-js/docs/classes/MouseConstraint.html)[2](https://github.com/liabru/matter-js/issues/48)
     World.add(world, mouseConstraint);
 
     materialsEl.textContent = "0";
@@ -287,9 +294,11 @@
 
   function addSpaghettiAt(x, y) {
     const stick = Bodies.rectangle(x, y, 90, 7, {
-      friction: 0.8,
-      restitution: 0.02,
-      frictionAir: 0.03,
+      friction: 0.9,
+      frictionStatic: 1.0,
+      restitution: 0.01,
+      frictionAir: 0.06,
+      density: 0.002,
       collisionFilter: { category: CAT_DRAGGABLE, mask: 0xFFFF },
       render: { fillStyle: "#7a3f00", strokeStyle: "#4b2600", lineWidth: 1 }
     });
@@ -300,9 +309,21 @@
     return stick;
   }
 
-  // Selection + hover
-  Events.on(mouseConstraint, "startdrag", e => { selectedBody = e.body; });
+  // Drag events: enable snap-to-angle while dragging
+  Events.on(mouseConstraint, "startdrag", (e) => {
+    draggingBody = e.body || null;
+    selectedBody = draggingBody;
 
+    if (!draggingBody) return;
+    // calm down dragging
+    Body.setAngularVelocity(draggingBody, 0);
+  });
+
+  Events.on(mouseConstraint, "enddrag", () => {
+    draggingBody = null;
+  });
+
+  // Hover + height update
   Events.on(engine, "afterUpdate", () => {
     const bodies = Composite.allBodies(world).filter(b => b !== ground && b !== leftWall && b !== rightWall && b !== ceiling);
     const hits = Query.point(bodies, mouse.position);
@@ -313,6 +334,28 @@
     const floorY = ground.bounds.min.y;
     currentHeightCm = Math.round(Math.max(0, (floorY - highestY) / PX_PER_CM));
     heightEl.textContent = `${currentHeightCm} cm`;
+
+    // ✅ Snap-to-horizontal/vertical while dragging
+    if (draggingBody && !glueMode) {
+      const a = draggingBody.angle;
+
+      // nearest targets: 0, PI/2, PI, 3PI/2
+      const targets = [0, Math.PI/2, Math.PI, (3*Math.PI)/2];
+      let best = targets[0];
+      let bestDiff = Infinity;
+
+      for (const t of targets) {
+        // smallest angular difference
+        let diff = Math.atan2(Math.sin(a - t), Math.cos(a - t));
+        diff = Math.abs(diff);
+        if (diff < bestDiff) { bestDiff = diff; best = t; }
+      }
+
+      if (bestDiff < SNAP_RAD) {
+        Body.setAngle(draggingBody, best);
+        Body.setAngularVelocity(draggingBody, 0);
+      }
+    }
   });
 
   function selectBodyAtMouse() {
@@ -321,14 +364,6 @@
     selectedBody = hits.length ? hits[0] : null;
     return selectedBody;
   }
-
-  // Rotation (locked while gluing)
-  window.addEventListener("wheel", (e) => {
-    if (glueMode || glueFirst) return;
-    if (!selectedBody || paused || gameEnded) return;
-    e.preventDefault();
-    Body.rotate(selectedBody, e.deltaY * 0.002);
-  }, { passive: false });
 
   // Buttons
   startBtn.onclick = () => {
@@ -342,7 +377,7 @@
     engine.timing.timeScale = 1;
 
     addSpaghettiAt(window.innerWidth / 2, getSpaghettiSpawnY());
-    setToast(`Building started for <strong>${escapeHtml(name)}</strong>. Drag sticks to stack.`);
+    setToast(`Building started for <strong>${escapeHtml(name)}</strong>. Drag sticks to stack (snaps near 0°/90°).`);
   };
 
   stopBtn.onclick = () => {
@@ -427,7 +462,7 @@
       ctx.restore();
     }
 
-    // dashed ruler
+    // dashed ruler (Canvas setLineDash) [4](https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D/setLineDash)
     const bodies = Composite.allBodies(world).filter(b => b !== ground && b !== leftWall && b !== rightWall && b !== ceiling);
     if (bodies.length) {
       const highestY = Math.min(...bodies.map(b => b.bounds.min.y));
@@ -514,7 +549,7 @@
   setToast("Ready. Enter a name and press <strong>Start</strong>.");
   resetWorldOnly();
   renderTeamsTable();
-  World.add(world, mouseConstraint); // ensure present at start too
+  World.add(world, mouseConstraint);
 
   window.addEventListener("resize", () => {
     render.canvas.width = window.innerWidth;
@@ -526,3 +561,4 @@
     createWorldBounds();
   });
 })();
+``
