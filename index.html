@@ -46,10 +46,9 @@
       min-width:260px;
     }
     .hud .row{ display:flex; justify-content:space-between; gap:12px; margin-top:4px; }
-    .hud small{ opacity:0.85; }
 
     .panel{
-      background: var(--panel);
+      background: rgba(255,255,255,0.96);
       padding:12px;
       border-radius:14px;
       box-shadow: var(--shadow);
@@ -103,18 +102,6 @@
       z-index:40;
       line-height:1.35;
     }
-
-    .icon-wrap{
-      display:flex; gap:10px; align-items:center;
-      margin-top:10px;
-    }
-    .icon-wrap img{
-      width:44px; height:44px;
-      border-radius:10px;
-      object-fit:cover;
-      box-shadow:0 6px 18px rgba(0,0,0,0.18);
-      background:#fff;
-    }
   </style>
 </head>
 
@@ -124,37 +111,16 @@
     <span id="brandTeamLabel">Team/Person: —</span>
   </div>
 
-  <!-- LEFT HUD -->
   <div class="hud">
-    <div>
-      <strong>Goal:</strong>
-      Build the tallest free‑standing tower. The <strong>top spaghetti piece</strong> (pink circle) must be the highest point when time ends.
-    </div>
+    <div><strong>Goal:</strong> Build the tallest tower. The <strong>pink top piece</strong> must be highest when time ends.</div>
 
-    <div class="icon-wrap">
-      <img src="spaghetti-tower.png" alt="Spaghetti tower icon" />
-      <div>
-        <small>
-          Click a stick to select it (outline appears). Rotate with mouse wheel or Q/E.
-          When <strong>Glue ON</strong>, rotation is locked.
-        </small>
-      </div>
-    </div>
-
-    <!-- Teams table -->
     <div class="panel">
       <strong>Teams / People</strong>
       <div class="muted">A name is added when you press Start</div>
-
       <div style="max-height:170px; overflow:auto; margin-top:8px;">
         <table>
           <thead>
-            <tr>
-              <th>#</th>
-              <th>Name</th>
-              <th>Height</th>
-              <th>Result</th>
-            </tr>
+            <tr><th>#</th><th>Name</th><th>Height</th><th>Result</th></tr>
           </thead>
           <tbody id="teamsTableBody">
             <tr><td colspan="4" class="muted">No teams added yet.</td></tr>
@@ -164,14 +130,12 @@
     </div>
   </div>
 
-  <!-- RIGHT HUD -->
   <div class="hud right">
     <div class="row"><span>Timer</span><span id="timer">⏱ 10:00</span></div>
     <div class="row"><span>Spaghetti</span><span id="materials">0</span></div>
     <div class="row"><span>Height</span><span id="height">0 cm</span></div>
   </div>
 
-  <!-- CONTROLS -->
   <div class="controls">
     <div class="panel">
       <strong>Team / Person</strong>
@@ -189,22 +153,19 @@
       </div>
 
       <div class="muted" style="margin-top:10px;">
-        Glue ON: click stick A, then stick B to glue their ends (rotation locked while gluing).
+        Tip: If you don’t see “JS loaded ✅” in the message bar below, the scripts aren’t loading.
       </div>
     </div>
   </div>
 
-  <div class="toast" id="toast">
-    Press <strong>Start</strong> to begin.
-  </div>
+  <div class="toast" id="toast">Loading…</div>
 
   <canvas id="game"></canvas>
 
-  <!-- ✅ Matter.js must be loaded BEFORE main.js -->
+  <!-- ✅ MUST be a real script tag -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
 
-  <!-- Game logic -->
+  <!-- Your game logic -->
   <script src="main.js"></script>
 </body>
 </html>
-``
