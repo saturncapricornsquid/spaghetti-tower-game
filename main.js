@@ -1,4 +1,4 @@
-document.addEventListener("DOMContentLoaded", () => {
+(() => {
   const {
     Engine, Render, Runner, World, Bodies,
     Constraint, Mouse, MouseConstraint, Composite,
@@ -6,7 +6,6 @@ document.addEventListener("DOMContentLoaded", () => {
   } = Matter;
 
   const GAME_DURATION = 10 * 60;
-  const TOP_TOLERANCE_PX = 3;
   const PX_PER_CM = 4;
 
   // DOM
@@ -26,23 +25,22 @@ document.addEventListener("DOMContentLoaded", () => {
   const stopBtn = document.getElementById("stopBtn");
   const resetBtn = document.getElementById("resetBtn");
 
-  // State
-  let glueMode = false;
-  let glueFirst = null;
+  // Immediate visible proof JS is running
+  toastEl.innerHTML = "JS loaded ✅ — enter a name and press <strong>Start</strong>.";
 
-  let timeLeft = GAME_DURATION;
+  // State
   let running = false;
   let paused = true;
   let gameEnded = false;
+  let timeLeft = GAME_DURATION;
 
-  let teams = []; // [{ name, heightCm, result }]
-  let currentHeightCm = 0;
+  let glueMode = false;
+  let glueFirst = null;
 
-  let ground;
+  let teams = []; // {name,heightCm,result}
   let spaghetti = [];
-  let joints = [];
-  let topPiece = null;
   let selectedBody = null;
+  let currentHeightCm = 0;
 
   // Engine
   const engine = Engine.create();
@@ -62,141 +60,66 @@ document.addEventListener("DOMContentLoaded", () => {
   Render.run(render);
   Runner.run(Runner.create(), engine);
 
-  /* ---------- UI helpers ---------- */
+  // Ground + top piece (pink circle)
+  let ground = Bodies.rectangle(window.innerWidth / 2, window.innerHeight - 20, window.innerWidth, 40, {
+    isStatic: true,
+    render: { fillStyle: "#cbd5e1" }
+  });
+  World.add(world, ground);
 
-  function setToast(html) {
-    toastEl.innerHTML = html;
-  }
+  let topPiece = Bodies.circle(window.innerWidth / 2, window.innerHeight / 2 - 120, 18, {
+    label: "top",
+    render: { fillStyle: "#ffd6e7", strokeStyle: "#fb7185", lineWidth: 2 }
+  });
+  World.add(world, topPiece);
 
-  function formatTime(seconds) {
-    const m = Math.floor(seconds / 60);
-    const s = String(seconds % 60).padStart(2, "0");
-    return `${m}:${s}`;
-  }
-
-  function updateTimerUI() {
-    timerEl.textContent = `⏱ ${formatTime(timeLeft)}`;
-  }
-
-  function updateMaterials() {
-    materialsEl.textContent = `${spaghetti.length}`;
-  }
-
-  function escapeHtml(str) {
-    return String(str).replace(/[&<>"']/g, (m) => ({
-      "&":"&amp;", "<":"&lt;", ">":"&gt;", "\"":"&quot;", "'":"&#039;"
-    }[m]));
-  }
-
-  function getTeamName() {
-    const v = (teamNameInput.value || "").trim();
-    return v || "Unnamed team/person";
-  }
+  // Helpers
+  const fmt = s => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
 
   function syncTeamLabel() {
-    brandTeamLabel.textContent = `Team/Person: ${getTeamName()}`;
+    const name = (teamNameInput.value || "").trim() || "—";
+    brandTeamLabel.textContent = `Team/Person: ${name}`;
   }
-
   teamNameInput.addEventListener("input", syncTeamLabel);
   syncTeamLabel();
 
-  /* ---------- Teams table ---------- */
-
-  function renderTeamsTable() {
-    if (teams.length === 0) {
+  function renderTeams() {
+    if (!teams.length) {
       teamsTableBody.innerHTML = `<tr><td colspan="4" class="muted">No teams added yet.</td></tr>`;
       return;
     }
-
-    teamsTableBody.innerHTML = teams.map((t, idx) => `
+    teamsTableBody.innerHTML = teams.map((t, i) => `
       <tr>
-        <td>${idx + 1}</td>
-        <td>${escapeHtml(t.name)}</td>
+        <td>${i + 1}</td>
+        <td>${t.name}</td>
         <td>${t.heightCm != null ? `${t.heightCm} cm` : "—"}</td>
-        <td>${t.result ? escapeHtml(t.result) : "—"}</td>
+        <td>${t.result || "—"}</td>
       </tr>
     `).join("");
   }
 
-  function ensureTeamExists(name) {
+  function ensureTeam(name) {
     const lower = name.toLowerCase();
-    const exists = teams.some(t => t.name.toLowerCase() === lower);
-    if (!exists && lower !== "unnamed team/person") {
+    if (!teams.some(t => t.name.toLowerCase() === lower)) {
       teams.push({ name, heightCm: null, result: "" });
-      renderTeamsTable();
+      renderTeams();
     }
   }
 
-  /* ---------- World setup ---------- */
-
-  function createGround() {
-    if (ground) World.remove(world, ground);
-    ground = Bodies.rectangle(
-      window.innerWidth / 2,
-      window.innerHeight - 20,
-      window.innerWidth,
-      40,
-      { isStatic: true, render: { fillStyle: "#cbd5e1" } }
-    );
-    World.add(world, ground);
+  function addSpaghetti(x, y) {
+    const stick = Bodies.rectangle(x, y, 90, 7, {
+      friction: 0.8,
+      restitution: 0.02,
+      frictionAir: 0.03,
+      render: { fillStyle: "#7a3f00", strokeStyle: "#4b2600", lineWidth: 1 }
+    });
+    spaghetti.push(stick);
+    World.add(world, stick);
+    materialsEl.textContent = `${spaghetti.length}`;
+    selectedBody = stick;
   }
 
-  function createTopPiece() {
-    if (topPiece) World.remove(world, topPiece);
-    topPiece = Bodies.circle(
-      window.innerWidth / 2,
-      window.innerHeight / 2 - 120,
-      18,
-      {
-        label: "topSpaghettiPiece",
-        restitution: 0.1,
-        friction: 0.8,
-        render: { fillStyle: "#ffd6e7", strokeStyle: "#fb7185", lineWidth: 2 }
-      }
-    );
-    World.add(world, topPiece);
-  }
-
-  function resetPhysicsWorld() {
-    Composite.clear(world, false);
-    spaghetti = [];
-    joints = [];
-    selectedBody = null;
-    glueFirst = null;
-    ground = null;
-    topPiece = null;
-
-    createGround();
-    createTopPiece();
-
-    updateMaterials();
-    heightEl.textContent = "0 cm";
-  }
-
-  function resetGame() {
-    resetPhysicsWorld();
-
-    glueMode = false;
-    glueBtn.classList.remove("active");
-    glueBtn.textContent = "Glue (tape/string)";
-
-    timeLeft = GAME_DURATION;
-    running = false;
-    paused = true;
-    gameEnded = false;
-
-    engine.timing.timeScale = 0;
-    stopBtn.textContent = "Stop";
-
-    updateTimerUI();
-    setToast("Press <strong>Start</strong> to begin.");
-  }
-
-  resetGame();
-  renderTeamsTable();
-
-  /* ---------- Mouse + selection ---------- */
-
+  // Mouse handling
   const mouse = Mouse.create(render.canvas);
   const mouseConstraint = MouseConstraint.create(engine, {
     mouse,
@@ -205,10 +128,6 @@ document.addEventListener("DOMContentLoaded", () => {
   World.add(world, mouseConstraint);
   render.mouse = mouse;
 
-  Events.on(mouseConstraint, "startdrag", (e) => {
-    selectedBody = e.body;
-  });
-
   function selectBodyAtMouse() {
     const bodies = Composite.allBodies(world).filter(b => b !== ground);
     const hits = Query.point(bodies, mouse.position);
@@ -216,8 +135,7 @@ document.addEventListener("DOMContentLoaded", () => {
     return selectedBody;
   }
 
-  /* ---------- Rotation (locked while gluing) ---------- */
-
+  // Rotation (locked while gluing)
   window.addEventListener("wheel", (e) => {
     if (glueMode || glueFirst) return;
     if (!selectedBody || paused || gameEnded) return;
@@ -232,126 +150,42 @@ document.addEventListener("DOMContentLoaded", () => {
     if (e.key === "e" || e.key === "E") Body.rotate(selectedBody, 0.05);
   });
 
-  /* ---------- Spaghetti creation ---------- */
-
-  function addSpaghettiAt(x, y) {
-    const stick = Bodies.rectangle(x, y, 90, 7, {
-      friction: 0.8,
-      restitution: 0.02,
-      frictionAir: 0.03,
-      render: { fillStyle: "#7a3f00", strokeStyle: "#4b2600", lineWidth: 1 }
-    });
-    spaghetti.push(stick);
-    World.add(world, stick);
-    updateMaterials();
-    selectedBody = stick;
-    return stick;
-  }
-
-  addSpaghettiBtn.onclick = () => {
-    if (!running || paused || gameEnded) return;
-    addSpaghettiAt(window.innerWidth / 2, window.innerHeight / 2);
-    setToast(`Spaghetti added. Using <strong>${spaghetti.length}</strong>.`);
-  };
-
-  /* ---------- Glue toggle + glue action ---------- */
-
-  glueBtn.onclick = () => {
-    glueMode = !glueMode;
-    glueFirst = null;
-    glueBtn.classList.toggle("active", glueMode);
-    glueBtn.textContent = glueMode ? "Glue ON" : "Glue (tape/string)";
-    setToast(glueMode ? "Glue ON (rotation locked)" : "Glue OFF");
-  };
-
-  canvas.addEventListener("mousedown", () => {
-    if (!running || paused || gameEnded) return;
-
-    const hit = selectBodyAtMouse();
-
-    if (!glueMode && !hit) {
-      addSpaghettiAt(mouse.position.x, mouse.position.y);
-      setToast(`Spaghetti added. Using <strong>${spaghetti.length}</strong>.`);
-      return;
-    }
-
-    if (glueMode && hit) {
-      if (!glueFirst) {
-        glueFirst = hit;
-        setToast("Glue: stick A selected. Now click stick B to glue.");
-        return;
-      }
-      if (hit === glueFirst) {
-        setToast("Glue: stick A re-selected. Click a different stick for B.");
-        return;
-      }
-
-      const weld = Constraint.create({
-        bodyA: glueFirst,
-        bodyB: hit,
-        stiffness: 0.99,
-        damping: 0.3
-      });
-      joints.push(weld);
-      World.add(world, weld);
-
-      setToast("Glue applied. Turn Glue OFF to rotate again.");
-      glueFirst = null;
-    }
-  });
-
-  /* ---------- Selected highlight outline ---------- */
-
+  // Highlight selected spaghetti
   Events.on(render, "afterRender", () => {
     if (!selectedBody || selectedBody.circleRadius) return;
-
     const ctx = render.context;
     const v = selectedBody.vertices;
-
     ctx.save();
     ctx.beginPath();
     ctx.moveTo(v[0].x, v[0].y);
     for (let i = 1; i < v.length; i++) ctx.lineTo(v[i].x, v[i].y);
     ctx.closePath();
-
     ctx.strokeStyle = "rgba(230,0,0,0.9)";
     ctx.lineWidth = 3;
     ctx.stroke();
-
-    ctx.strokeStyle = "rgba(143,43,209,0.35)";
-    ctx.lineWidth = 7;
-    ctx.stroke();
-
     ctx.restore();
   });
 
-  /* ---------- Height calculation (live) ---------- */
-
+  // Live height
   Events.on(engine, "afterUpdate", () => {
-    if (!ground) return;
     const bodies = Composite.allBodies(world).filter(b => b !== ground);
     if (!bodies.length) return;
-
     const highestY = Math.min(...bodies.map(b => b.bounds.min.y));
     const floorY = ground.bounds.min.y;
-    const heightPx = Math.max(0, floorY - highestY);
-    currentHeightCm = Math.round(heightPx / PX_PER_CM);
+    currentHeightCm = Math.max(0, Math.round((floorY - highestY) / PX_PER_CM));
     heightEl.textContent = `${currentHeightCm} cm`;
   });
 
-  /* ---------- Start/Stop/Reset ---------- */
-
+  // Buttons
   startBtn.onclick = () => {
-    const name = getTeamName();
-    ensureTeamExists(name);
+    const name = (teamNameInput.value || "").trim() || "Unnamed team/person";
+    ensureTeam(name);
     syncTeamLabel();
-
     running = true;
     paused = false;
     gameEnded = false;
     engine.timing.timeScale = 1;
-
-    setToast(`Building started for <strong>${escapeHtml(name)}</strong>. Add spaghetti and build!`);
+    toastEl.innerHTML = `Building started for <strong>${name}</strong>. Click Add spaghetti or click empty space to place sticks.`;
   };
 
   stopBtn.onclick = () => {
@@ -359,70 +193,78 @@ document.addEventListener("DOMContentLoaded", () => {
     paused = !paused;
     engine.timing.timeScale = paused ? 0 : 1;
     stopBtn.textContent = paused ? "Resume" : "Stop";
-    setToast(paused ? "Paused." : "Resumed.");
+    toastEl.innerHTML = paused ? "Paused." : "Resumed.";
   };
 
-  resetBtn.onclick = () => {
-    stopBtn.textContent = "Stop";
-    resetGame();
+  resetBtn.onclick = () => location.reload();
+
+  addSpaghettiBtn.onclick = () => {
+    if (!running || paused || gameEnded) {
+      toastEl.innerHTML = "Press <strong>Start</strong> first.";
+      return;
+    }
+    addSpaghetti(window.innerWidth / 2, window.innerHeight / 2);
+    toastEl.innerHTML = `Spaghetti added. Total: <strong>${spaghetti.length}</strong>.`;
   };
 
-  /* ---------- Winner evaluation + table update ---------- */
+  glueBtn.onclick = () => {
+    glueMode = !glueMode;
+    glueFirst = null;
+    glueBtn.classList.toggle("active", glueMode);
+    toastEl.innerHTML = glueMode ? "Glue ON (rotation locked)." : "Glue OFF.";
+  };
 
-  function evaluateResult() {
-    const name = getTeamName();
-    ensureTeamExists(name);
-    const team = teams.find(t => t.name.toLowerCase() === name.toLowerCase());
+  // Canvas click: select or add/glue
+  canvas.addEventListener("mousedown", () => {
+    if (!running || paused || gameEnded) return;
 
-    const bodies = Composite.allBodies(world).filter(b => b !== ground);
-    const topY = topPiece ? topPiece.bounds.min.y : Infinity;
+    const hit = selectBodyAtMouse();
 
-    const others = bodies.filter(b => b !== topPiece);
-    const highestOtherY = others.length ? Math.min(...others.map(b => b.bounds.min.y)) : Infinity;
-
-    const topIsHighest = topPiece && (topY <= highestOtherY + TOP_TOLERANCE_PX);
-
-    if (team) {
-      team.heightCm = currentHeightCm;
-      team.result = topIsHighest ? "Winner" : "No winner";
-      renderTeamsTable();
+    if (!glueMode && !hit) {
+      addSpaghetti(mouse.position.x, mouse.position.y);
+      toastEl.innerHTML = `Spaghetti added. Total: <strong>${spaghetti.length}</strong>.`;
+      return;
     }
 
-    if (topIsHighest) {
-      setToast(`🏆 <strong>WINNING TEAM / PERSON IS:</strong> ${escapeHtml(name)} (Height: ${currentHeightCm} cm)`);
-    } else {
-      setToast(`<strong>NO WINNER</strong> — top piece not highest (Height: ${currentHeightCm} cm)`);
+    if (glueMode && hit) {
+      if (!glueFirst) {
+        glueFirst = hit;
+        toastEl.innerHTML = "Glue: stick A selected. Click stick B to glue.";
+        return;
+      }
+      if (hit !== glueFirst) {
+        const weld = Constraint.create({ bodyA: glueFirst, bodyB: hit, stiffness: 0.99, damping: 0.3 });
+        joints.push(weld);
+        World.add(world, weld);
+        glueFirst = null;
+        toastEl.innerHTML = "Glue applied. Turn Glue OFF to rotate.";
+      }
     }
-  }
+  });
 
-  /* ---------- Timer ---------- */
-
-  updateTimerUI();
-  updateMaterials();
+  // Timer loop
+  timerEl.textContent = `⏱ ${fmt(timeLeft)}`;
+  materialsEl.textContent = "0";
 
   setInterval(() => {
     if (!running || paused || gameEnded) return;
-
     timeLeft--;
-    updateTimerUI();
-
+    timerEl.textContent = `⏱ ${fmt(timeLeft)}`;
     if (timeLeft <= 0) {
       gameEnded = true;
       paused = true;
       engine.timing.timeScale = 0;
-      stopBtn.textContent = "Stop";
-      evaluateResult();
+      toastEl.innerHTML = "Time’s up. Hands off!";
     }
   }, 1000);
 
-  /* ---------- Resize ---------- */
-
+  // Resize
   window.addEventListener("resize", () => {
     render.canvas.width = window.innerWidth;
     render.canvas.height = window.innerHeight;
     render.options.width = window.innerWidth;
     render.options.height = window.innerHeight;
-    createGround();
+
+    Body.setPosition(ground, { x: window.innerWidth / 2, y: window.innerHeight - 20 });
   });
-});
-``
+})();
